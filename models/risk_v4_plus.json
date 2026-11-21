@@ -1,0 +1,27 @@
+{
+ "file": "risk_v4_plus.pt",
+ "task": "forecast",
+ "channels": [
+  "pre_med_vv",
+  "pre_med_vh",
+  "pre_min_vh",
+  "pre_std_vh",
+  "pre_count",
+  "pre_ratio",
+  "dist_track_km",
+  "track_wind_kt",
+  "valid"
+ ],
+ "base": 32,
+ "params_M": 7.8,
+ "note": "early warning, kit v4 (no rain yet)",
+ "run": "D:\\sar_flood\\train_kit_v4\\runs\\v4_forecast",
+ "test_vs_published_map": {
+  "iou": 0.193,
+  "precision": 0.282,
+  "recall": 0.381,
+  "f1": 0.324,
+  "pr_auc": 0.267
+ },
+ "best_epoch": 28
+}

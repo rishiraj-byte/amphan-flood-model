@@ -1,0 +1,27 @@
+{
+ "python": "D:\\sar_flood\\train_kit\\.venv\\Scripts\\python.exe",
+ "build_cmd": [
+  "{python}",
+  "build_stack.py",
+  "--request",
+  "{request}",
+  "--out",
+  "{stack}"
+ ],
+ "build_cwd": "D:\\sar_flood\\ops",
+ "predict_extra": [],
+ "kit_dirs": [
+  "D:\\sar_flood\\train_kit_v3",
+  "D:\\sar_flood\\train_kit_v4"
+ ],
+ "kit_logs": [
+  "D:\\sar_flood\\run_kit_v*.log"
+ ],
+ "threshold": 0.3,
+ "detect_models": [
+  "detect_v3_ops70.pt",
+  "detect_v4_plus70.pt"
+ ],
+ "risk_model": "risk_v4_plus.pt",
+ "tta": 8
+}

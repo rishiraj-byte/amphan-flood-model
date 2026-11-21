@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Training data and run outputs (several GB, not in this repo)
+data/
+runs/
+*.npy
+*.tar
+*.zip
+
+# Ops console local state
+ops/storms/
+ops/improve/
+ops/bridge/
+ops/bridge_config.json
+ops/autopilot_state.json
+ops/*.log
+ops/*STOP

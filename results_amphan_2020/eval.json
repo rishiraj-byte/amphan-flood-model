@@ -1,0 +1,121 @@
+{
+ "threshold": 0.3,
+ "areas": {
+  "test": "held-out test blocks (never trained on)",
+  "all": "whole area (includes areas the models trained on)"
+ },
+ "reference_notes": {
+  "published": "Mondal et al. / Zenodo 4390084 - the SAME map the training labels came from",
+  "independent": "EOS ARIA Flood Proxy Map v0.4, Bangladesh, S1 16->22 May 2020 (ArcGIS layer BD00022)"
+ },
+ "ensemble": {
+  "published_test": {
+   "iou": 0.511,
+   "precision": 0.639,
+   "recall": 0.718,
+   "f1": 0.676,
+   "tp": 56036,
+   "fp": 31709,
+   "fn": 21965,
+   "ref_flood_km2": 892.9,
+   "pred_flood_km2": 1004.5,
+   "scored_km2": 29816.3
+  },
+  "published_all": {
+   "iou": 0.523,
+   "precision": 0.6,
+   "recall": 0.803,
+   "f1": 0.687,
+   "tp": 186121,
+   "fp": 124120,
+   "fn": 45673,
+   "ref_flood_km2": 2653.5,
+   "pred_flood_km2": 3551.6,
+   "scored_km2": 116151.3
+  },
+  "independent_test": {
+   "iou": 0.344,
+   "precision": 0.635,
+   "recall": 0.429,
+   "f1": 0.512,
+   "tp": 17905,
+   "fp": 10299,
+   "fn": 23838,
+   "ref_flood_km2": 476.7,
+   "pred_flood_km2": 322.1,
+   "scored_km2": 11336.1
+  },
+  "independent_all": {
+   "iou": 0.357,
+   "precision": 0.688,
+   "recall": 0.426,
+   "f1": 0.526,
+   "tp": 75408,
+   "fp": 34214,
+   "fn": 101436,
+   "ref_flood_km2": 2020.8,
+   "pred_flood_km2": 1253.1,
+   "scored_km2": 41501.2
+  }
+ },
+ "per_model": {
+  "detect_v3_ops70": {
+   "published_test": {
+    "iou": 0.5,
+    "precision": 0.626,
+    "recall": 0.713,
+    "f1": 0.667,
+    "tp": 55629,
+    "fp": 33274,
+    "fn": 22372,
+    "ref_flood_km2": 892.9,
+    "pred_flood_km2": 1017.8,
+    "scored_km2": 29816.3
+   },
+   "independent_test": {
+    "iou": 0.336,
+    "precision": 0.629,
+    "recall": 0.419,
+    "f1": 0.503,
+    "tp": 17480,
+    "fp": 10324,
+    "fn": 24263,
+    "ref_flood_km2": 476.7,
+    "pred_flood_km2": 317.5,
+    "scored_km2": 11336.1
+   }
+  },
+  "detect_v4_plus70": {
+   "published_test": {
+    "iou": 0.498,
+    "precision": 0.644,
+    "recall": 0.687,
+    "f1": 0.665,
+    "tp": 53559,
+    "fp": 29599,
+    "fn": 24442,
+    "ref_flood_km2": 892.9,
+    "pred_flood_km2": 951.9,
+    "scored_km2": 29816.3
+   },
+   "independent_test": {
+    "iou": 0.336,
+    "precision": 0.63,
+    "recall": 0.419,
+    "f1": 0.503,
+    "tp": 17477,
+    "fp": 10277,
+    "fn": 24266,
+    "ref_flood_km2": 476.7,
+    "pred_flood_km2": 316.9,
+    "scored_km2": 11336.1
+   }
+  }
+ },
+ "risk": {
+  "pr_auc_test": 0.267,
+  "flood_base_rate_test": 0.034,
+  "share_of_real_flood_in_top10pct_risk": 0.536,
+  "note": "PR-AUC of random guessing = the base rate"
+ }
+}

@@ -1,0 +1,70 @@
+{
+ "name": "Amphan_2020_kitv4",
+ "created": "2026-11-20 02:29",
+ "grid": {
+  "res": 0.001,
+  "factor": 2,
+  "cgx0": 85931,
+  "cgy_top": 24818,
+  "W": 4865,
+  "H": 4493,
+  "west": 85.931,
+  "north": 24.819,
+  "crs": "EPSG:4326"
+ },
+ "threshold": 0.3,
+ "tta": 8,
+ "device": "cuda",
+ "detect": {
+  "models": [
+   "detect_v3_ops70.pt",
+   "detect_v4_plus70.pt"
+  ],
+  "flood_km2": 4700.5,
+  "permanent_water_km2": 65153.6,
+  "radar_covered_km2": 242590.8,
+  "flood_km2_if_cutoff_0.3": 4700.5,
+  "flood_km2_if_cutoff_0.7": 2504.2
+ },
+ "tifs": [
+  "flood_class.tif",
+  "flood_probability.tif",
+  "flood_risk.tif"
+ ],
+ "risk": {
+  "model": "risk_v4_plus.pt",
+  "zones": {
+   "top_5pct": {
+    "risk_at_least": 0.258,
+    "km2": 12143.1
+   },
+   "top_10pct": {
+    "risk_at_least": 0.093,
+    "km2": 24244.7
+   },
+   "top_20pct": {
+    "risk_at_least": 0.03,
+    "km2": 48414.5
+   }
+  },
+  "risk_scale_note": "relative ranking; the map colours scale to the 98th percentile"
+ },
+ "eval": true,
+ "preview": {
+  "step": 4,
+  "w": 1217,
+  "h": 1124
+ },
+ "layers": [
+  "agree",
+  "flood",
+  "prob",
+  "prob_gray",
+  "radar_after",
+  "radar_before",
+  "ref_independent",
+  "ref_published",
+  "risk",
+  "test_blocks"
+ ]
+}

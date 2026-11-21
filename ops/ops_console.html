@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Flood Ops Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+:root{
+  --bg:#060a13;--bg2:#0a1120;--panel:#0c1424;--panel2:#101a2e;--line:#1b2741;--line2:#263555;
+  --fg:#e5ecf7;--mute:#8a99b4;--dim:#5a6985;
+  --cyan:#3ad6ff;--cyan-soft:rgba(58,214,255,.12);--violet:#8f7cff;--violet-soft:rgba(143,124,255,.14);
+  --ok:#3ee08f;--warn:#ffb547;--bad:#ff5d7a;--pink:#ff4fae;--orange:#ff9628;
+  --glow:0 0 0 1px rgba(58,214,255,.25),0 0 24px rgba(58,214,255,.12);
+  --h:"Space Grotesk",system-ui,sans-serif;--b:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--m:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#eef2f8;--bg2:#e6ecf5;--panel:#ffffff;--panel2:#f5f8fc;--line:#d8e0ec;--line2:#c6d2e3;
+  --fg:#0f1a2c;--mute:#55657f;--dim:#8292ab;--cyan:#0090c0;--cyan-soft:rgba(0,144,192,.10);--violet:#5b48e0;--violet-soft:rgba(91,72,224,.10);
+  --ok:#11905a;--warn:#b07000;--bad:#d0284a;--pink:#c0247f;--orange:#c96a00;--glow:0 0 0 1px rgba(0,144,192,.25);color-scheme:light}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 var(--b)}
+body{background:radial-gradient(1200px 600px at 85% -10%,rgba(143,124,255,.10),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(58,214,255,.08),transparent 60%),var(--bg);min-height:100vh}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+/* sidebar */
+.side{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);background:linear-gradient(180deg,var(--bg2),var(--bg));padding:18px 14px;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;gap:10px;align-items:center;padding:4px 6px}
+.brand b{font:700 16px var(--h);letter-spacing:.06em}.brand small{display:block;color:var(--mute);font-size:11px;letter-spacing:.04em}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;color:var(--mute);text-decoration:none;font-weight:500}
+.nav a svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7}
+.nav a:hover{background:var(--panel2);color:var(--fg)}
+.nav a.on{background:var(--cyan-soft);color:var(--cyan);box-shadow:inset 2px 0 0 var(--cyan)}
+.side .foot{margin-top:auto;font-size:11px;color:var(--dim);padding:0 6px;line-height:1.6}
+/* main */
+.main{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:5;display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px max(16px,2.4vw);border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px)}
+.top h1{font:600 19px var(--h);margin:0;letter-spacing:.01em}
+.top .sp{flex:1}
+select,input,textarea{background:var(--panel2);color:var(--fg);border:1px solid var(--line2);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px}
+textarea{font-family:var(--m);font-size:12px;width:100%;min-height:84px}
+input[type=range]{padding:0;accent-color:var(--cyan)}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:99px;border:1px solid var(--line2);font-size:12px;color:var(--mute);background:var(--panel)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.dot.ok{background:var(--ok);box-shadow:0 0 10px var(--ok)}.dot.run{background:var(--warn);box-shadow:0 0 5px var(--warn);animation:pulse 1.2s infinite}.dot.bad{background:var(--bad)}
+@keyframes pulse{50%{opacity:.35}}
+#view{padding:18px max(16px,2.4vw) 40px;display:grid;gap:16px;min-width:0}
+.grid{display:grid;gap:16px;min-width:0}
+.g2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2e{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0;position:relative}
+.card h2{font:600 12px var(--h);text-transform:uppercase;letter-spacing:.12em;color:var(--mute);margin:0 0 12px;display:flex;gap:8px;align-items:center}
+.card h2 .tag{margin-left:auto}
+.tag{font:600 10px var(--m);letter-spacing:.06em;padding:2px 7px;border-radius:5px;background:var(--cyan-soft);color:var(--cyan);text-transform:uppercase}
+.tag.v{background:var(--violet-soft);color:var(--violet)}.tag.w{background:rgba(255,181,71,.13);color:var(--warn)}.tag.r{background:rgba(255,93,122,.13);color:var(--bad)}.tag.g{background:rgba(62,224,143,.13);color:var(--ok)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.card .kpis.sm{grid-template-columns:repeat(auto-fit,minmax(105px,1fr))}
+.kpi{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg2)}
+.kpi .v{font:600 clamp(20px,1.9vw,26px) var(--m);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .v small{font-size:13px;color:var(--mute);font-weight:400;margin-left:3px}
+.kpi .l{color:var(--mute);font-size:12px}
+.kpi.c .v{color:var(--cyan)}.kpi.p .v{color:var(--violet)}.kpi.o .v{color:var(--orange)}
+.muted{color:var(--mute)}.small{font-size:12px}.mono{font-family:var(--m)}
+.note{border:1px solid var(--line2);border-left:3px solid var(--warn);border-radius:10px;padding:10px 12px;color:var(--mute);font-size:12.5px;background:var(--bg2)}
+.note b{color:var(--fg)}
+button,.btn{border:1px solid transparent;border-radius:9px;padding:8px 14px;font:600 13px var(--b);background:var(--cyan);color:#021018;cursor:pointer;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+button.ghost,.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line2)}
+button.ghost:hover{border-color:var(--cyan);color:var(--cyan)}
+button:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font:600 11px var(--h);text-transform:uppercase;letter-spacing:.08em;color:var(--mute);text-align:left;padding:7px 8px;border-bottom:1px solid var(--line2)}
+td{padding:7px 8px;border-bottom:1px solid var(--line)}td.n{font-family:var(--m);text-align:right}th.n{text-align:right}
+.tw{overflow-x:auto}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;font:11.5px/1.5 var(--m);max-height:300px;overflow:auto;white-space:pre-wrap;margin:0;color:var(--mute)}
+/* pipeline */
+.pipe svg{width:100%;height:auto;display:block}
+.pipe text{font:600 11px var(--h);letter-spacing:.04em}
+/* map */
+.mapwrap{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px}
+.map{position:relative;overflow:hidden;border-radius:12px;border:1px solid var(--line2);background:#03060c;aspect-ratio:var(--ar,1);max-height:78vh;cursor:grab;touch-action:none;max-width:100%}
+.map.drag{cursor:grabbing}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0}
+.stage img{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.stage.px img{image-rendering:pixelated}
+.pin{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.5),0 0 14px var(--cyan);pointer-events:none;display:none}
+.mapctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px}
+.mapctl button{width:32px;height:32px;padding:0;justify-content:center;background:rgba(6,10,19,.75);color:#e5ecf7;border:1px solid rgba(255,255,255,.18)}
+.scalebar{position:absolute;left:10px;bottom:10px;font:11px var(--m);color:#dfe8f5;background:rgba(6,10,19,.7);padding:3px 8px;border-radius:6px}
+.layers{display:flex;flex-direction:column;gap:6px}
+.lay{display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;padding:7px 9px;border:1px solid var(--line);border-radius:9px;background:var(--bg2)}
+.lay label{font-size:12.5px;cursor:pointer;display:flex;gap:7px;align-items:center}
+.lay input[type=range]{grid-column:1/3;width:100%;height:14px}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3px;flex:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--mute)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.px dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:12.5px}.px dt{color:var(--mute)}.px dd{margin:0;font-family:var(--m)}
+.hot{color:var(--cyan);font-weight:600}
+/* storms */
+.form label{display:block;font-size:12px;color:var(--mute);margin:10px 0 4px}
+.form input{width:100%}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.storm{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg2);display:grid;gap:10px}
+.storm .nm{font:600 17px var(--h)}
+/* models */
+.mcard{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--bg2);display:grid;gap:8px}
+.mcard.on{border-color:var(--cyan);box-shadow:var(--glow)}
+.mcard .t{font:600 14px var(--m);word-break:break-all}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:center;font-size:12px}
+.bar{height:6px;border-radius:9px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan))}
+details summary{cursor:pointer;color:var(--mute);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.chips span{font:11px var(--m);padding:1px 6px;border-radius:5px;background:var(--panel2);border:1px solid var(--line);color:var(--mute)}
+/* training */
+.runs{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.run{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg2);display:grid;gap:6px}
+.run svg{width:100%;height:90px}
+/* bridge */
+.chat{display:flex;flex-direction:column;gap:10px;max-height:62vh;overflow:auto;padding-right:4px}
+.msg{max-width:min(620px,92%);border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg2)}
+.msg.out{align-self:flex-end;border-color:color-mix(in srgb,var(--cyan) 40%,var(--line));background:var(--cyan-soft)}
+.msg .h{font-size:11px;color:var(--mute);display:flex;gap:8px;flex-wrap:wrap}
+.msg .s{font-weight:600;margin:3px 0}
+.msg .b{white-space:pre-wrap;font-size:12.5px;color:var(--fg);max-height:180px;overflow:auto}
+/* system */
+.gauge{height:10px;border-radius:9px;background:var(--line);overflow:hidden}.gauge i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.err{color:var(--bad);font-size:12.5px;min-height:1em}
+.cpick{display:grid;gap:6px}.cpick label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg2);margin:0;cursor:pointer;color:var(--fg);font-size:13px}
+.cpick label.on{border-color:var(--cyan);box-shadow:var(--glow)}.cpick small{grid-column:2;color:var(--mute);font-size:11px}.form .cpick input{width:auto}
+.xwrap{position:relative;margin-top:10px;border-radius:10px;overflow:hidden;background:#03060c;border:1px solid var(--line2)}.xwrap canvas{display:block;width:100%;height:auto}
+.todo h3{font:600 13px var(--h);margin:12px 0 4px;color:var(--fg)}.todo .li{margin:5px 0;padding-left:20px;text-indent:-20px}.todo .li.done{color:var(--dim);text-decoration:line-through}.todo p{margin:4px 0}
+.empty{padding:28px;text-align:center;color:var(--mute);border:1px dashed var(--line2);border-radius:12px}
+@media (max-width:1100px){.g2,.g3{grid-template-columns:minmax(0,1fr)}.mapwrap{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:820px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:sticky;top:0;z-index:6;height:auto;flex-direction:row;align-items:center;padding:8px max(10px,env(safe-area-inset-left));overflow-x:auto;gap:10px;border-right:0;border-bottom:1px solid var(--line)}
+  .brand small,.side .foot{display:none}
+  .nav{flex-direction:row}.nav a{padding:7px 9px;white-space:nowrap}.nav a span{display:none}.nav a.on span{display:inline}
+  .top{position:static}.g2e{grid-template-columns:minmax(0,1fr)}
+}
+/* neural + live training */
+.brain{width:100%;height:auto;display:block}
+.brain .bl{font:600 10px var(--h);fill:var(--fg);letter-spacing:.06em}.brain .bs{font:9.5px var(--m);fill:var(--mute)}
+.scan{position:relative;width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--line2);background:#03060c}
+.scan img,.scan canvas{position:absolute;inset:0;width:100%;height:100%}
+.scan img:not([src]){display:none}
+.cur{position:absolute;display:none;border:2px solid var(--cyan);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 22px var(--cyan),inset 0 0 22px rgba(58,214,255,.35);border-radius:3px;transition:left .25s,top .25s}
+.io{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:8px}
+.io figure{margin:0;flex:1;max-width:180px;min-width:0}.io img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--line2);background:#03060c;image-rendering:pixelated}
+.io.wide{flex-wrap:wrap}.io.wide figure{flex:1 1 30%;max-width:none}
+.io figcaption,.acts figcaption{font-size:11px;color:var(--mute);text-align:center;margin-top:3px}
+.io .arrow{color:var(--cyan);font:600 22px var(--m)}
+.acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-top:10px}
+.acts figure{margin:0}.acts img{width:100%;aspect-ratio:1;border-radius:7px;border:1px solid var(--line2);background:#03060c;image-rendering:pixelated}
+.acts figcaption b{color:var(--fg);font-family:var(--m);font-weight:600}
+.chart{width:100%;height:auto;display:block}.chart .ax{font:12px var(--m);fill:var(--mute)}
+.kpi .bar{height:5px}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand">
+    <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#8f7cff"/><stop offset="1" stop-color="#3ad6ff"/></linearGradient></defs>
+      <g stroke="url(#lg)" stroke-width="1.4" fill="none"><path d="M6 10 16 6 26 10M6 10 16 16 26 10M6 22 16 16 26 22M6 10v12M26 10v12M16 6v20"/></g>
+      <g fill="url(#lg)"><circle cx="16" cy="6" r="2.2"/><circle cx="6" cy="10" r="2"/><circle cx="26" cy="10" r="2"/><circle cx="16" cy="16" r="2.6"/><circle cx="6" cy="22" r="2"/><circle cx="26" cy="22" r="2"/><circle cx="16" cy="26" r="2.2"/></g></svg>
+    <div><b>FLOOD·OPS</b><small>radar flood intelligence</small></div>
+  </div>
+  <nav class="nav" id="nav"></nav>
+  <div class="foot" id="foot">—</div>
+</aside>
+<div class="main">
+  <header class="top">
+    <h1 id="title">Overview</h1>
+    <span class="sp"></span>
+    <label class="small muted" for="stormSel">Storm</label>
+    <select id="stormSel"></select>
+    <span class="pill" id="jobPill"><i class="dot"></i><span>idle</span></span>
+  </header>
+  <section id="view"></section>
+</div>
+</div>
+<script>
+"use strict";
+const ICONS={
+ control:'<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h12"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+ overview:'<path d="M3 13h7V3H3zM14 21h7V11h-7zM3 21h7v-5H3zM14 7h7V3h-7z"/>',
+ neural:'<path d="M9 3a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 1 5 3 3 0 0 0 4 3 3 3 0 0 0 3-1V4a3 3 0 0 0-3-1zM15 3a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-1 5 3 3 0 0 1-4 3 3 3 0 0 1-3-1"/><path d="M8 9h2M14 9h2M8 14h2M14 14h2"/>',
+ map:'<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14"/>',
+ forecast:'<path d="M3 17l5-5 4 4 8-9"/><path d="M14 7h6v6"/>',
+ eval:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>',
+ storms:'<path d="M21 12a9 9 0 1 1-9-9"/><path d="M12 7a5 5 0 1 0 5 5"/><circle cx="12" cy="12" r="1.5"/>',
+ models:'<circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h8M7 8l4 3M17 8l-4 3M7 16l4-3M17 16l-4-3M8 18h8"/>',
+ training:'<path d="M3 20h18"/><path d="M5 16l4-6 4 3 6-9"/>',
+ bridge:'<path d="M4 5h16v10H8l-4 4z"/>',
+ system:'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9zM9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3"/>'};
+const PAGES=[['control','Control'],['overview','Overview'],['neural','Neural live'],['map','Live map'],['forecast','Forecast'],['eval','Evaluation'],['storms','Storms'],['models','Models'],['training','Training'],['bridge','Bridge'],['system','System']];
+const LAYERS={
+ radar_after:{label:'Radar after storm (VV dB)',sw:'linear-gradient(90deg,#000,#fff)'},
+ radar_before:{label:'Radar before storm',sw:'linear-gradient(90deg,#000,#fff)'},
+ prob:{label:'Flood probability',sw:'linear-gradient(90deg,#281e78,#3cc8ff,#f0ffff)'},
+ flood:{label:'Detected flood + water',sw:'#28c8ff'},
+ risk:{label:'Early-warning risk',sw:'linear-gradient(90deg,#ffd23c,#ff5a28,#ff1e78)'},
+ ref_published:{label:'Published map (Mondal)',sw:'#3ca0ff'},
+ ref_independent:{label:'Independent map (ARIA)',sw:'#3ca0ff'},
+ agree:{label:'Agreement vs published',sw:'linear-gradient(90deg,#28dcff 33%,#ff9628 33% 66%,#ff3caa 66%)'},
+ test_blocks:{label:'Held-out test blocks',sw:'#aa96ff'}};
+const PRESET={map:['radar_after','flood'],forecast:['radar_before','risk'],agree:['radar_after','agree','test_blocks']};
+const S={storms:[],cur:null,models:null,sys:null,train:null,bridge:null,lay:{},sig:''};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const km=n=>n==null?'—':Number(n).toLocaleString(undefined,{maximumFractionDigits:0});
+const f3=n=>n==null?'—':Number(n).toFixed(3);
+const pct=n=>n==null?'—':(n*100).toFixed(0)+'%';
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+async function api(p,b){const r=await fetch(p,b?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}:{});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j}
+const page=()=>(location.hash.slice(1)||'control').split('-')[0];
+const cur=()=>S.storms.find(s=>s.name===S.cur)||S.storms[0]||null;
+
+function nav(){
+ $('#nav').innerHTML=PAGES.map(([k,t])=>`<a href="#${k}" class="${page()===k?'on':''}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg><span>${t}</span></a>`).join('');
+ $('#title').textContent=(PAGES.find(p=>p[0]===page())||PAGES[0])[1];
+}
+function chrome(){
+ const sel=$('#stormSel');const names=S.storms.map(s=>s.name);
+ if(sel.dataset.v!==names.join('|')){sel.innerHTML=names.map(n=>`<option>${esc(n)}</option>`).join('');sel.dataset.v=names.join('|')}
+ const c=cur();if(c)sel.value=c.name;
+ const run=S.storms.filter(s=>s.job&&s.job.state==='running');
+ const p=$('#jobPill');
+ if(run.length){p.innerHTML=`<i class="dot run"></i><span>${esc(run[0].job.kind)} · ${esc(run[0].name)} · ${esc((run[0].progress||'').replace(/^\[[^\]]*\]\s*/,'').slice(0,60))}</span>`}
+ else{const f=S.storms.find(s=>s.job&&String(s.job.state).startsWith('failed'));p.innerHTML=f?`<i class="dot bad"></i><span>${esc(f.name)}: ${esc(f.job.kind)} failed</span>`:'<i class="dot ok"></i><span>idle · ready</span>'}
+}
+async function loadStorms(){
+ S.storms=await api('/api/storms');
+ if(!S.cur||!S.storms.some(s=>s.name===S.cur))S.cur=ls.get('storm')&&S.storms.some(s=>s.name===ls.get('storm'))?ls.get('storm'):(S.storms[0]||{}).name;
+ chrome();
+ const c=cur();const sig=JSON.stringify([page(),c&&c.name,c&&c.summary&&c.summary.created,c&&c.job&&c.job.state,S.storms.length]);
+ if(sig!==S.sig){S.sig=sig;render()}
+ else if(['storms','overview','control'].includes(page()))updateLive();
+}
+function updateLive(){const c=cur();document.querySelectorAll('[data-prog]').forEach(el=>{const s=S.storms.find(x=>x.name===el.dataset.prog);if(s)el.textContent=s.progress||''});if(page()==='control'&&c)ctlLog(c.name)}
+
+/* ---------- map viewer ---------- */
+function mapViewer(el,s,presetKey){
+ const sm=s.summary;if(!sm||!sm.layers||!sm.layers.length){el.innerHTML='<div class="empty">No map layers yet for this storm. Press <b>Run models</b> on the Storms page.</div>';return}
+ const avail=sm.layers.filter(l=>LAYERS[l]);const W=sm.preview.w,H=sm.preview.h;
+ const key=s.name+'|'+presetKey;
+ if(!S.lay[key]){const pre=PRESET[presetKey]||PRESET.map;S.lay[key]=Object.fromEntries(avail.map(l=>[l,{on:pre.includes(l),op:l.startsWith('radar')?1:(l==='test_blocks'?.8:.9)}]))}
+ const st=S.lay[key];const order=['radar_after','radar_before','prob','risk','ref_published','ref_independent','flood','agree','test_blocks'].filter(l=>avail.includes(l));
+ const t=Date.parse(sm.created)||0;
+ el.innerHTML=`<div class="mapwrap"><div><div class="map" style="--ar:${W}/${H}"><div class="stage" style="width:${W}px;height:${H}px">
+ ${order.map(l=>`<img data-l="${l}" src="/files/${s.name}/layers/${l}.png?t=${t}" alt="${esc(LAYERS[l].label)}">`).join('')}<div class="pin"></div></div>
+ <div class="mapctl"><button title="Zoom in" data-z="1.5">+</button><button title="Zoom out" data-z="0.667">−</button><button title="Reset" data-z="0">⟲</button></div>
+ <div class="scalebar"></div></div>
+ <div class="legend" style="margin-top:8px">${legendFor(order.filter(l=>st[l].on))}</div></div>
+ <div class="grid" style="align-content:start"><div class="layers">${order.slice().reverse().map(l=>`<div class="lay"><label><input type="checkbox" data-t="${l}" ${st[l].on?'checked':''}><i class="sw" style="background:${LAYERS[l].sw}"></i>${esc(LAYERS[l].label)}</label><input type="range" min="0" max="1" step="0.05" value="${st[l].op}" data-o="${l}" aria-label="opacity"></div>`).join('')}</div>
+ <div class="card px" style="padding:12px"><h2>Pixel inspector</h2><div class="pxo small muted">Click anywhere on the map to read the model's output at that spot.</div></div></div></div>`;
+ const map=el.querySelector('.map'),stage=el.querySelector('.stage'),pin=el.querySelector('.pin'),sb=el.querySelector('.scalebar');
+ const apply=()=>{order.forEach(l=>{const im=stage.querySelector(`img[data-l="${l}"]`);im.style.display=st[l].on?'':'none';im.style.opacity=st[l].op});el.querySelector('.legend').innerHTML=legendFor(order.filter(l=>st[l].on))};
+ let base=1,k=1,tx=0,ty=0;
+ const fit=()=>{base=Math.min(map.clientWidth/W,map.clientHeight/H);clamp();draw()};
+ const draw=()=>{const sc=base*k;stage.style.transform=`translate(${tx}px,${ty}px) scale(${sc})`;stage.classList.toggle('px',sc>2.2);
+   const kmPerPx=(sm.grid.res*sm.preview.step*111.32*Math.cos((sm.grid.north-sm.grid.res*sm.grid.H/2)*Math.PI/180))/sc;const nice=[1,2,5,10,20,50,100];const target=kmPerPx*110;const v=nice.find(n=>n>=target)||100;sb.innerHTML=`<span style="display:inline-block;width:${(v/kmPerPx).toFixed(0)}px;border-bottom:2px solid #dfe8f5;margin-right:6px"></span>${v} km`};
+ const clamp=()=>{const sw=W*base*k,sh=H*base*k,mw=map.clientWidth,mh=map.clientHeight;tx=Math.min(Math.max(tx,mw-sw),0);ty=Math.min(Math.max(ty,mh-sh),0);if(sw<mw)tx=(mw-sw)/2;if(sh<mh)ty=(mh-sh)/2};
+ const zoomAt=(f,cx,cy)=>{const nk=Math.min(Math.max(k*f,1),24);const r=nk/k;tx=cx-(cx-tx)*r;ty=cy-(cy-ty)*r;k=nk;clamp();draw()};
+ el.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>{const z=+b.dataset.z;if(!z){k=1;tx=ty=0;clamp();draw()}else zoomAt(z,map.clientWidth/2,map.clientHeight/2)});
+ map.addEventListener('wheel',e=>{e.preventDefault();const r=map.getBoundingClientRect();zoomAt(e.deltaY<0?1.25:0.8,e.clientX-r.left,e.clientY-r.top)},{passive:false});
+ let drag=null;
+ map.addEventListener('pointerdown',e=>{if(e.target.closest('.mapctl'))return;drag={x:e.clientX,y:e.clientY,tx,ty,moved:false};map.setPointerCapture(e.pointerId);map.classList.add('drag')});
+ map.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;tx=drag.tx+dx;ty=drag.ty+dy;clamp();draw()});
+ map.addEventListener('pointerup',async e=>{map.classList.remove('drag');const d=drag;drag=null;if(!d||d.moved)return;
+   const r=stage.getBoundingClientRect();const x=Math.floor((e.clientX-r.left)/r.width*W),y=Math.floor((e.clientY-r.top)/r.height*H);
+   if(x<0||y<0||x>=W||y>=H)return;pin.style.display='block';pin.style.left=(x+.5)+'px';pin.style.top=(y+.5)+'px';pin.style.transform=`scale(${1/(base*k)})`;
+   const o=el.querySelector('.pxo');o.textContent='reading…';
+   try{const v=await api(`/api/storm/${s.name}/pixel?x=${x}&y=${y}`);
+     const rows=[['Location',`${v.lat}° N, ${v.lon}° E`],['Model says',`<span class="${v.class==='FLOOD'?'hot':''}">${esc(v.class??'—')}</span>`],['Flood probability',v.flood_prob==null?'—':`${v.flood_prob} <span class="muted">(flood if ≥ ${sm.threshold})</span>`],['Early-warning risk',v.risk==null?'—':v.risk]];
+     if(v.published_map!=null)rows.push(['Published map',esc(v.published_map)]);if(v.independent_map!=null)rows.push(['Independent map',esc(v.independent_map)]);if(v.block!=null)rows.push(['Block',esc(v.block)]);
+     o.innerHTML=`<dl>${rows.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`;o.classList.remove('muted')}catch(err){o.textContent=err.message}});
+ el.querySelectorAll('[data-t]').forEach(c=>c.onchange=()=>{st[c.dataset.t].on=c.checked;apply()});
+ el.querySelectorAll('[data-o]').forEach(c=>c.oninput=()=>{st[c.dataset.o].op=+c.value;apply()});
+ new ResizeObserver(()=>{const ok=k;fit();k=ok;clamp();draw()}).observe(map);
+ apply();fit();requestAnimationFrame(fit);
+}
+function legendFor(on){const L=[];const add=(c,t)=>L.push(`<span><i class="sw" style="background:${c}"></i>${t}</span>`);
+ if(on.includes('flood')){add('#28c8ff','flood (model)');add('#182c60','permanent water')}
+ if(on.includes('prob'))add('linear-gradient(90deg,#281e78,#3cc8ff,#f0ffff)','flood probability low → high');
+ if(on.includes('risk'))add('linear-gradient(90deg,#ffd23c,#ff5a28,#ff1e78)','risk low → high (relative)');
+ if(on.includes('ref_published')||on.includes('ref_independent'))add('#3ca0ff','flood on reference map');
+ if(on.includes('agree')){add('#28dcff','hit: both say flood');add('#ff9628','false alarm: model only');add('#ff3caa','miss: map only')}
+ if(on.includes('test_blocks'))add('#aa96ff','held-out test block');
+ if(on.some(l=>l.startsWith('radar')))add('linear-gradient(90deg,#000,#fff)','radar: dark = smooth water, bright = rough land');
+ return L.join('')||'<span>Pick a layer.</span>'}
+
+/* ---------- pages ---------- */
+const V={};
+V.overview=async el=>{
+ const s=cur();if(!s){el.innerHTML=`<div class="empty">No storms yet. Go to <a href="#storms">Storms</a> and add one.</div>`;return}
+ const sm=s.summary||{},d=sm.detect,r=sm.risk,ev=s.eval,et=ev&&ev.ensemble&&ev.ensemble.published_test,e2=ev&&ev.ensemble&&ev.ensemble.independent_test;
+ const req=s.request||{};const t=sm.created?Date.parse(sm.created):0;
+ const step=(on,run)=>run?'run':on?'ok':'idle';const job=s.job&&s.job.state==='running'?s.job.kind:null;
+ const N=[['STORM DATA',!!req.landfall||!!req.stack_path],['RADAR STACK',s.stack_ready,job==='build'],['DETECT ENSEMBLE',!!d,job==='predict'],['RISK MODEL',!!r,job==='predict'],['EVALUATE',!!ev,false]];
+ el.innerHTML=`<div class="card pipe"><h2>Pipeline · ${esc(s.name)}<span class="tag ${job?'w':'g'}">${job?esc(job)+' running':'ready'}</span></h2>${pipeSVG(N)}
+ <div class="small muted">${esc(req.landfall?'Landfall '+req.landfall+' · ':'')}${esc(req.bbox?'area '+req.bbox+' · ':'')}stack: <span class="mono">${esc(s.stack)}</span></div></div>
+ <div class="kpis">
+ <div class="kpi c"><div class="v">${km(d&&d.flood_km2)}<small>km²</small></div><div class="l">Flooded (cutoff ${sm.threshold??0.5})</div></div>
+ <div class="kpi"><div class="v">${d?km(d['flood_km2_if_cutoff_0.7'])+'–'+km(d['flood_km2_if_cutoff_0.3']):'—'}<small>km²</small></div><div class="l">Range: strict 0.7 – loose 0.3</div></div>
+ <div class="kpi"><div class="v">${km(d&&d.permanent_water_km2)}<small>km²</small></div><div class="l">Permanent water (rivers, sea)</div></div>
+ <div class="kpi"><div class="v">${km(d&&d.radar_covered_km2)}<small>km²</small></div><div class="l">Radar covered</div></div>
+ <div class="kpi o"><div class="v">${km(r&&r.zones.top_10pct.km2)}<small>km²</small></div><div class="l">Top-10% early-warning zone</div></div>
+ <div class="kpi p"><div class="v">${et?f3(et.iou):'—'}</div><div class="l">${et?'Test IoU vs published map':'No reference map: no score'}</div></div>
+ ${e2?`<div class="kpi p"><div class="v">${f3(e2.iou)}</div><div class="l">Test IoU vs independent map</div></div>`:''}
+ </div>
+ <div class="grid g2"><div class="card"><h2>Flood map<span class="tag">${d?esc(d.models.length+' model ensemble'):'no run yet'}</span></h2>
+ ${sm.layers&&sm.layers.includes('flood')?`<a href="#map" style="display:block;position:relative;aspect-ratio:${sm.preview.w}/${sm.preview.h};border-radius:10px;overflow:hidden;background:#03060c;border:1px solid var(--line2)">${['radar_after','flood'].filter(l=>sm.layers.includes(l)).map(l=>`<img src="/files/${s.name}/layers/${l}.png?t=${t}" alt="" style="position:absolute;inset:0;width:100%;height:100%">`).join('')}</a><div class="small muted" style="margin-top:6px">Tap the map to open the live viewer.</div>`:'<div class="empty">Run the models to see the map.</div>'}</div>
+ <div class="grid" style="align-content:start"><div class="card"><h2>Engine</h2><div id="ovSys" class="small muted">reading…</div></div>
+ <div class="card"><h2>Models in use</h2>${d?`<div class="chips">${d.models.map(m=>`<span>${esc(m)}</span>`).join('')}${r?`<span style="color:var(--orange)">${esc(r.model)}</span>`:''}</div>`:'<div class="small muted">—</div>'}<div class="small muted" style="margin-top:8px">Change them on <a href="#models" style="color:var(--cyan)">Models</a>.</div></div>
+ <div class="card"><h2>Latest bridge message</h2><div id="ovMsg" class="small muted">reading…</div></div></div></div>`;
+ try{const y=await api('/api/system');S.sys=y;const g=y.gpu;$('#ovSys').innerHTML=`${g?`<div class="row" style="justify-content:space-between"><span>${esc(g.name)}</span><span class="mono">${g.util}% · ${g.temp_c}°C</span></div><div class="gauge" style="margin:5px 0 10px"><i style="width:${g.util}%"></i></div>`:'<div>No NVIDIA GPU found (CPU mode).</div>'}${y.ram?`<div class="row" style="justify-content:space-between"><span>RAM free</span><span class="mono">${y.ram.free_gb} / ${y.ram.total_gb} GB</span></div>`:''}<div class="row" style="justify-content:space-between"><span>Disk free</span><span class="mono">${y.disk.free_gb} GB</span></div><div class="row" style="justify-content:space-between"><span>Host</span><span class="mono">${esc(y.host)}</span></div>${y.autopilot?`<div class="row" style="justify-content:space-between"><span>Autopilot</span><span class="mono">${y.autopilot.alive?'running':esc(y.autopilot.state)} · PC ${y.autopilot.pc_online?'online':'offline'}</span></div>`:''}`}catch(e){}
+ try{const b=await api('/api/bridge');const m=b.messages[b.messages.length-1];$('#ovMsg').innerHTML=m?`<div><b style="color:var(--fg)">${esc(m.subject||'(no subject)')}</b></div><div>${m.dir==='in'?'from':'to'} ${esc(m.dir==='in'?m.from:b.peer)} · ${esc(m.time)}</div>`:'none yet'}catch(e){$('#ovMsg').textContent='bridge not set up'}
+};
+function pipeSVG(N){const w=860,h=110,xs=N.map((_,i)=>60+i*(w-120)/(N.length-1));const col=s=>s==='ok'?'var(--cyan)':s==='run'?'var(--warn)':'var(--line2)';
+ const st=N.map(n=>n[2]?'run':n[1]?'ok':'idle');
+ let g='';for(let i=0;i<N.length-1;i++){const a=st[i]==='ok'&&st[i+1]!=='idle';g+=`<line x1="${xs[i]+16}" y1="44" x2="${xs[i+1]-16}" y2="44" stroke="${a?'var(--cyan)':'var(--line2)'}" stroke-width="2" ${a?'':'stroke-dasharray="4 5"'}/>`;
+   for(let j=1;j<4;j++)g+=`<circle cx="${xs[i]+(xs[i+1]-xs[i])*j/4}" cy="44" r="2" fill="${a?'var(--violet)':'var(--line2)'}"/>`}
+ N.forEach((n,i)=>{g+=`<circle cx="${xs[i]}" cy="44" r="14" fill="var(--bg2)" stroke="${col(st[i])}" stroke-width="2"/><circle cx="${xs[i]}" cy="44" r="5" fill="${col(st[i])}">${st[i]==='run'?'<animate attributeName="opacity" values="1;.3;1" dur="1.2s" repeatCount="indefinite"/>':''}</circle><text x="${xs[i]}" y="86" text-anchor="middle" fill="${st[i]==='idle'?'var(--dim)':'var(--fg)'}">${n[0]}</text><text x="${xs[i]}" y="102" text-anchor="middle" fill="var(--mute)" style="font:400 10px var(--m)">${st[i]==='run'?'running':st[i]==='ok'?'done':'waiting'}</text>`});
+ return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="pipeline status">${g}</svg>`}
+
+/* ---------- control: set up a run, start it, watch it, explore the cutoff ---------- */
+async function ctlLog(n){const el=$('#cLog');if(!el)return;try{const t=await (await fetch(`/api/storm/${n}/log`)).text();el.textContent=t?t.slice(-2500):'(no runs yet)';el.scrollTop=el.scrollHeight}catch(e){}}
+const inl=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`(.+?)`/g,'<span class="mono">$1</span>');
+function mdLite(t){return t.split('\n').map(l=>{if(/^#{1,3} /.test(l))return `<h3>${inl(l.replace(/^#+ /,''))}</h3>`;const m=l.match(/^\s*(?:[-*]|\d+\.)\s+(\[( |x)\]\s+)?(.*)$/);
+ if(m)return `<div class="li ${m[2]==='x'?'done':''}">${m[1]?(m[2]==='x'?'☑':'☐'):'•'} ${inl(m[3])}</div>`;return l.trim()?`<p>${inl(l)}</p>`:''}).join('')}
+function improveCard(I){
+ if(!I||!I.recipe)return `<div class="small muted">${I&&I.progress?'Running: '+esc(I.progress):'Not run yet.'}</div>`;
+ const R=I.recipe,T=(I.test||{}).results||{},v=R.val_mean_iou||{};
+ return `<div class="small muted">Settings chosen on <b>validation</b> blocks with models trained on train blocks only, then scored <b>once</b> on the held-out test blocks.</div>
+ <div class="tw" style="margin-top:8px"><table><tr><th>Ops ensemble setting</th><th class="n">IoU published</th><th class="n">IoU independent</th><th class="n">P / R indep.</th></tr>${Object.entries(T).map(([k,x])=>`<tr><td>${esc(k)}</td><td class="n">${f3(x.published.iou)}</td><td class="n"><b>${f3(x.independent.iou)}</b></td><td class="n">${pct(x.independent.p)} / ${pct(x.independent.r)}</td></tr>`).join('')||'<tr><td colspan="4">test scoring not finished yet</td></tr>'}</table></div>
+ <div class="small muted" style="margin-top:8px">Validation, mean IoU of both maps: 1 model ${f3(v.single_best_cut)} · 2 averaged ${f3(v.avg2_best_cut)} · 3 averaged ${f3(v.avg3_best_cut)} · TTA off ${f3(v.avg2_tta1)} vs on ${f3(v.avg2_tta8)}</div>
+ ${I.val_md?`<details><summary class="small">full validation table</summary><pre>${esc(I.val_md)}</pre></details>`:''}`}
+function loadImg(u){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error(u));i.src=u})}
+async function cutExplorer(s){
+ const wrap=$('#xWrap'),sm=s&&s.summary;if(!wrap||!sm||!sm.layers||!sm.layers.includes('prob_gray'))return;
+ const t=Date.parse(sm.created)||0,base=`/files/${s.name}/layers/`;let bg,pg;
+ try{[bg,pg]=await Promise.all([loadImg(base+(sm.layers.includes('radar_after')?'radar_after':'radar_before')+'.png?t='+t),loadImg(base+'prob_gray.png?t='+t)])}catch(e){wrap.innerHTML='<div class="empty">map layers missing</div>';return}
+ const W=pg.naturalWidth,H=pg.naturalHeight,o=document.createElement('canvas');o.width=W;o.height=H;const oc=o.getContext('2d',{willReadFrequently:true});oc.drawImage(pg,0,0);const P=oc.getImageData(0,0,W,H).data;
+ const g=sm.grid,st=sm.preview.step,k=Math.pow(g.res*111.32,2)*st*st,rowA=new Float64Array(H);for(let y=0;y<H;y++)rowA[y]=k*Math.cos((g.north-(y+.5)*st*g.res)*Math.PI/180);
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;wrap.innerHTML='';wrap.appendChild(cv);const ctx=cv.getContext('2d');
+ const ov=document.createElement('canvas');ov.width=W;ov.height=H;const ovc=ov.getContext('2d'),img=ovc.createImageData(W,H),D=img.data;
+ const draw=c=>{const c8=Math.round(c*255);let a=0;for(let y=0,i=0;y<H;y++)for(let x=0;x<W;x++,i+=4){const on=P[i+3]>0&&P[i]>=c8;D[i]=40;D[i+1]=200;D[i+2]=255;D[i+3]=on?230:0;if(on)a+=rowA[y]}
+  ovc.putImageData(img,0,0);ctx.clearRect(0,0,W,H);ctx.drawImage(bg,0,0,W,H);ctx.drawImage(ov,0,0);$('#xThrV').textContent=c.toFixed(2);$('#xKm').textContent='≈ '+km(a)+' km² flood'};
+ const r=$('#xThr');r.oninput=()=>draw(+r.value);draw(+r.value)}
+V.control=async el=>{
+ const s=cur();const [M,I]=await Promise.all([api('/api/models'),api('/api/improve').catch(()=>({}))]);S.models=M;
+ const det=M.models.filter(m=>m.task==='detect'),rk=M.models.filter(m=>m.task!=='detect');
+ const sm=(s&&s.summary)||{},d=sm.detect,E=(s&&s.eval&&s.eval.ensemble)||{},it=E.independent_test,pt=E.published_test;
+ const run=!!(s&&s.job&&s.job.state==='running'),rec=I.recipe;
+ el.innerHTML=`<div class="note"><b>Use the model here.</b> 1 · pick the storm, models and settings → 2 · run the full map (1–3 min on the GPU; TTA 8 ≈ 8×) or watch it scan tile by tile → 3 · drag the cutoff on the result. The published map is where the training labels came from, so the <b>independent</b> score is the honest one.</div>
+ <div class="kpis">
+  <div class="kpi c"><div class="v">${km(d&&d.flood_km2)}<small>km²</small></div><div class="l">Flood · last run (cutoff ${sm.threshold??'—'}${sm.tta?' · TTA '+sm.tta:''})</div></div>
+  <div class="kpi p"><div class="v">${f3(it&&it.iou)}</div><div class="l">Test IoU · independent map (honest)</div></div>
+  <div class="kpi"><div class="v">${f3(pt&&pt.iou)}</div><div class="l">Test IoU · published map</div></div>
+  <div class="kpi"><div class="v">${it?pct(it.precision)+' / '+pct(it.recall):'—'}</div><div class="l">Precision / recall · independent</div></div></div>
+ <div class="grid g2"><div class="card form"><h2>1 · Set up the run<span class="tag">${s?esc(s.name):'no storm'}</span></h2>
+  <label>Storm</label><select id="cStorm">${S.storms.map(x=>`<option ${s&&x.name===s.name?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
+  <label>Detection models · averaged</label><div class="cpick">${det.map(m=>`<label class="${m.enabled?'on':''}"><input type="checkbox" name="cdet" value="${esc(m.file)}" ${m.enabled?'checked':''}><span class="mono">${esc(m.file.replace(/^detect_|\.pt$/g,''))}</span><small>${esc(m.note||'')}</small></label>`).join('')}</div>
+  <label>Early-warning model</label><select id="cRisk" style="width:100%">${rk.map(m=>`<option value="${esc(m.file)}" ${m.enabled?'selected':''}>${esc(m.file)}</option>`).join('')}</select>
+  <div class="two"><div><label>Flood cutoff <b class="mono" id="cThrV">${M.threshold}</b></label><input type="range" id="cThr" min="0.2" max="0.8" step="0.05" value="${M.threshold}"></div>
+  <div><label>Test-time augmentation</label><select id="cTta" style="width:100%">${[[1,'off · fastest'],[4,'4 flips · ~4× time'],[8,'8 views · ~8× time']].map(([v,t])=>`<option value="${v}" ${+M.tta===v?'selected':''}>${t}</option>`).join('')}</select></div></div>
+  ${rec?`<div class="row small muted" style="margin-top:10px">Recommended (validation blocks): cutoff <b class="mono">${rec.threshold}</b> · TTA <b class="mono">${rec.tta}</b><button type="button" class="ghost" id="cRec">Use these</button></div>`:''}
+  <div class="row" style="margin-top:14px"><button id="cRun" ${run||!s||!s.stack_ready?'disabled':''}>▶ Save + run full map</button><button class="ghost" id="cLive" ${!s||!s.stack_ready?'disabled':''}>Watch it scan live</button></div><div class="small muted" id="cMsg" style="margin-top:6px"></div></div>
+  <div class="card"><h2>2 · Status<span class="tag ${run?'w':'g'}">${run?esc(s.job.kind)+' running':'idle'}</span></h2>
+  <div class="small mono muted" data-prog="${s?esc(s.name):''}">${esc((s&&s.progress)||'')}</div><pre id="cLog" style="margin-top:8px;max-height:300px">reading log…</pre>
+  <div class="small muted" style="margin-top:8px">Last run ${esc(sm.created||'never')}${d?' · '+esc(d.models.join(' + ')):''}</div></div></div>
+ <div class="card"><h2>3 · Result · drag the cutoff<span class="tag">instant, in the browser</span></h2>
+  <div class="row"><input type="range" id="xThr" min="0.05" max="0.95" step="0.01" value="${sm.threshold??0.5}" style="flex:1;min-width:160px"><b class="mono" id="xThrV"></b><span class="mono" id="xKm" style="color:var(--cyan)"></span></div>
+  <div class="xwrap" id="xWrap"><div class="empty">${sm.layers&&sm.layers.includes('prob_gray')?'loading map…':'Press ▶ Save + run full map once to use this.'}</div></div>
+  <div class="small muted" style="margin-top:6px">Cyan = flood at this cutoff, over the after-storm radar. Area is approximate (preview grid). This slider does not change saved runs: the cutoff in step 1 does. <a href="#map" style="color:var(--cyan)">Full map viewer →</a></div></div>
+ <div class="grid g2e"><div class="card"><h2>Improvement check<span class="tag">honest protocol</span></h2>${improveCard(I)}</div>
+  <div class="card"><h2>Rj's to-do<span class="tag w">for you</span></h2><div id="cTodo" class="todo small">reading…</div></div></div>`;
+ $('#cStorm').onchange=e=>{S.cur=e.target.value;ls.set('storm',S.cur);S.sig='';loadStorms()};
+ $('#cThr').oninput=e=>$('#cThrV').textContent=e.target.value;
+ document.querySelectorAll('input[name=cdet]').forEach(i=>i.onchange=()=>i.closest('label').classList.toggle('on',i.checked));
+ if($('#cRec'))$('#cRec').onclick=()=>{$('#cThr').value=rec.threshold;$('#cThrV').textContent=rec.threshold;$('#cTta').value=rec.tta};
+ const cfgBody=()=>({detect_models:[...document.querySelectorAll('input[name=cdet]:checked')].map(i=>i.value),risk_model:$('#cRisk').value,threshold:+$('#cThr').value,tta:+$('#cTta').value});
+ $('#cRun').onclick=async()=>{const m=$('#cMsg');try{await api('/api/config',cfgBody());await api(`/api/storm/${s.name}/predict`,{});m.textContent='started · this page updates by itself';S.sig='';await loadStorms()}catch(x){m.textContent=x.message}};
+ $('#cLive').onclick=async()=>{const m=$('#cMsg'),dm=cfgBody().detect_models[0];if(!dm){m.textContent='tick a detection model';return}try{await api(`/api/live/${s.name}/start`,{model:dm,pace:0.35});location.hash='neural'}catch(x){m.textContent=x.message}};
+ if(s)ctlLog(s.name);cutExplorer(s);
+ try{const t=await (await fetch('/api/todo')).text();$('#cTodo').innerHTML=t?mdLite(t):'Nothing on the list.'}catch(e){$('#cTodo').textContent='could not read the list'}
+};
+
+V.map=el=>{const s=cur();if(!s)return el.innerHTML='<div class="empty">No storm selected.</div>';
+ el.innerHTML=`<div class="card"><h2>Live map · ${esc(s.name)}<span class="tag">drag · scroll to zoom · click to inspect</span></h2><div id="mv"></div></div>`;mapViewer($('#mv'),s,location.hash.includes('-agree')?'agree':'map')};
+
+V.forecast=el=>{const s=cur();if(!s)return el.innerHTML='<div class="empty">No storm selected.</div>';
+ const r=(s.summary||{}).risk,er=s.eval&&s.eval.risk;
+ el.innerHTML=`<div class="note"><b>What this is:</b> an early-warning map made <b>before</b> landfall from pre-storm radar plus the storm track. It ranks land by flood risk. <b>It is weak</b>: on Amphan's held-out blocks its PR-AUC is about 0.26 (random guessing ≈ the flood base rate). Rain data is the missing input. Use it to prioritise, not to decide.</div>
+ <div class="kpis">${r?Object.entries(r.zones).map(([k,z])=>`<div class="kpi o"><div class="v">${km(z.km2)}<small>km²</small></div><div class="l">${k.replace('top_','Top ').replace('pct','% riskiest land')} (risk ≥ ${z.risk_at_least})</div></div>`).join(''):'<div class="kpi"><div class="v">—</div><div class="l">no risk run yet</div></div>'}
+ ${er?`<div class="kpi p"><div class="v">${f3(er.pr_auc_test)}</div><div class="l">PR-AUC on test blocks (random ≈ ${f3(er.flood_base_rate_test)})</div></div><div class="kpi p"><div class="v">${pct(er.share_of_real_flood_in_top10pct_risk)}</div><div class="l">of real flood inside the top-10% zone (test)</div></div>`:''}</div>
+ <div class="card"><h2>Risk map · ${esc(s.name)}<span class="tag w">${r?esc(r.model):'—'}</span></h2><div id="mv"></div></div>`;mapViewer($('#mv'),s,'forecast')};
+
+V.eval=el=>{const s=cur();if(!s)return el.innerHTML='<div class="empty">No storm selected.</div>';
+ const ev=s.eval;if(!ev){el.innerHTML=`<div class="empty">${s.has_refs?'Run the models to score them.':'This storm has no reference flood map, so there is nothing to score against. Scores need a published flood map for the same storm.'}</div>`;return}
+ const E=ev.ensemble,card=(k,title,tag,cls,expl)=>E[k]?`<div class="card"><h2>${title}<span class="tag ${cls}">${tag}</span></h2>
+ <div class="kpis sm"><div class="kpi c"><div class="v">${f3(E[k].iou)}</div><div class="l">IoU</div></div><div class="kpi"><div class="v">${f3(E[k].precision)}</div><div class="l">Precision · "said flood, was flood"</div></div><div class="kpi"><div class="v">${f3(E[k].recall)}</div><div class="l">Recall · "flood found"</div></div><div class="kpi"><div class="v">${f3(E[k].f1)}</div><div class="l">F1</div></div></div>
+ <div class="small muted" style="margin-top:8px">${expl} Reference flood ${km(E[k].ref_flood_km2)} km² · model flood ${km(E[k].pred_flood_km2)} km² · scored ${km(E[k].scored_km2)} km².</div></div>`:'';
+ const pm=Object.entries(ev.per_model||{});
+ el.innerHTML=`<div class="note"><b>Read this first.</b> The "published" map (Mondal / Zenodo 4390084) is the <b>same map the training labels came from</b>, so even its test-block score is optimistic. The independent map (${esc(ev.reference_notes.independent)}) was never used in training: that is the honest score. Whole-area scores include land the models trained on.</div>
+ <div class="grid g2e">${card('published_test','Held-out test blocks · published map','honest split','g','Test blocks were never trained on.')}${card('independent_test','Held-out test blocks · independent map','most honest','v','Independent map, held-out blocks.')}
+ ${card('independent_all','Whole area · independent map','independent','v','The model trained on Mondal labels in parts of this area, but never saw this map.')}${card('published_all','Whole area · published map','IN-SAMPLE','r','Includes training areas: NOT a fair score.')}</div>
+ ${pm.length?`<div class="card"><h2>Each model on its own · test blocks</h2><div class="tw"><table><tr><th>Model</th><th class="n">IoU published</th><th class="n">P</th><th class="n">R</th><th class="n">IoU independent</th></tr>${pm.map(([n,v])=>`<tr><td class="mono">${esc(n)}</td><td class="n">${f3(v.published_test&&v.published_test.iou)}</td><td class="n">${f3(v.published_test&&v.published_test.precision)}</td><td class="n">${f3(v.published_test&&v.published_test.recall)}</td><td class="n">${f3(v.independent_test&&v.independent_test.iou)}</td></tr>`).join('')}<tr><td><b>Ensemble (average)</b></td><td class="n"><b>${f3(E.published_test&&E.published_test.iou)}</b></td><td class="n">${f3(E.published_test&&E.published_test.precision)}</td><td class="n">${f3(E.published_test&&E.published_test.recall)}</td><td class="n"><b>${f3(E.independent_test&&E.independent_test.iou)}</b></td></tr></table></div></div>`:''}
+ <div class="card"><h2>Where it agrees and disagrees<span class="tag">vs published map</span></h2><div id="mv"></div></div>`;mapViewer($('#mv'),s,'agree')};
+
+V.storms=el=>{
+ el.innerHTML=`<div class="grid g2"><div class="card"><h2>Storms</h2><div class="grid">${S.storms.length?S.storms.map(stormCard).join(''):'<div class="empty">No storms yet.</div>'}</div></div>
+ <div class="card form"><h2>New storm</h2><form id="f">
+ <label>Storm name (letters, digits, _ -)</label><input name="name" required placeholder="Yaas_2021">
+ <label>Landfall date</label><input name="landfall" type="date">
+ <div class="two"><div><label>Radar BEFORE from</label><input name="pre_from" type="date"></div><div><label>to</label><input name="pre_to" type="date"></div></div>
+ <div class="two"><div><label>Radar AFTER from</label><input name="post_from" type="date"></div><div><label>to</label><input name="post_to" type="date"></div></div>
+ <label>Area: west,south,east,north (degrees)</label><input name="bbox" placeholder="86.0,20.5,89.5,23.5">
+ <label>Storm track CSV: time_utc,lat,lon,wind_kt</label><textarea name="track_csv" placeholder="2021-05-26T03:00,21.4,87.0,75"></textarea>
+ <label>Existing stack folder (optional, skips Build)</label><input name="stack_path" placeholder="/path/to/stack">
+ <label>Notes</label><input name="notes">
+ <div class="row" style="margin-top:12px"><button>Save storm</button></div><div class="err" id="ferr"></div></form></div></div>`;
+ $('#f').onsubmit=async e=>{e.preventDefault();$('#ferr').textContent='';try{const r=await api('/api/storm',Object.fromEntries(new FormData(e.target)));S.cur=r.name;ls.set('storm',r.name);S.sig='';await loadStorms()}catch(x){$('#ferr').textContent=x.message}};
+};
+function stormCard(s){const r=s.request||{},j=s.job,run=j&&j.state==='running',d=s.summary&&s.summary.detect;
+ return `<div class="storm"><div class="row" style="justify-content:space-between"><div><div class="nm">${esc(s.name)}</div><div class="small muted">landfall ${esc(r.landfall||'?')} · before ${esc(r.pre_from||'?')}→${esc(r.pre_to||'?')} · after ${esc(r.post_from||'?')}→${esc(r.post_to||'?')}</div></div>
+ ${j?`<span class="tag ${run?'w':String(j.state).startsWith('failed')?'r':'g'}">${esc(j.kind)}: ${esc(j.state)}</span>`:''}</div>
+ <div class="row"><button class="ghost" ${run||r.stack_path?'disabled':''} onclick="act('${s.name}','build')">1 · Build stack</button><button ${run||!s.stack_ready?'disabled':''} onclick="act('${s.name}','predict')">2 · Run models</button><button class="ghost" onclick="pick('${s.name}','overview')">Open</button><button class="ghost" onclick="showLog('${s.name}',this)">Log</button></div>
+ <div class="small muted">${s.stack_ready?'stack ready':'stack not built yet'}${s.has_refs?' · has reference maps (can be scored)':''}${d?` · last run: ${km(d.flood_km2)} km² flood`:''}</div>
+ <div class="small mono muted" data-prog="${s.name}">${esc(s.progress)}</div><pre hidden></pre></div>`}
+async function act(n,k){try{await api(`/api/storm/${n}/${k}`,{});S.sig='';await loadStorms()}catch(x){alert(x.message)}}
+async function showLog(n,b){const pre=b.closest('.storm').querySelector('pre');pre.hidden=!pre.hidden;if(!pre.hidden)pre.textContent=await (await fetch(`/api/storm/${n}/log`)).text()||'(empty)'}
+function pick(n,p){S.cur=n;ls.set('storm',n);location.hash=p}
+
+V.models=async el=>{el.innerHTML='<div class="empty">reading models…</div>';const M=await api('/api/models');S.models=M;
+ const det=M.models.filter(m=>m.task==='detect'),rk=M.models.filter(m=>m.task!=='detect');
+ const mc=(m,inp)=>{const t=m.test_vs_published_map||{};return `<label class="mcard ${m.enabled?'on':''}"><div class="row" style="justify-content:space-between"><span class="t">${esc(m.file)}</span>${inp}</div>
+ <div class="small muted">${esc(m.note||'no model card')}</div>
+ <div class="row small"><span class="tag ${m.task==='detect'?'':'w'}">${esc(m.task)}</span><span class="muted">${m.channels?m.channels.length+' layers':''} · ${m.params_M??'?'} M params · ${m.size_mb} MB</span></div>
+ ${t.iou!=null?`<div class="bars"><span>IoU</span><span class="bar"><i style="width:${t.iou*100}%"></i></span><span class="mono">${f3(t.iou)}</span><span>F1</span><span class="bar"><i style="width:${t.f1*100}%"></i></span><span class="mono">${f3(t.f1)}</span><span>PR-AUC</span><span class="bar"><i style="width:${(t.pr_auc||0)*100}%"></i></span><span class="mono">${f3(t.pr_auc)}</span></div><div class="small muted">test blocks vs published map (from its training run)</div>`:''}
+ ${m.channels?`<details><summary>input layers</summary><div class="chips">${m.channels.map(c=>`<span>${esc(c)}</span>`).join('')}</div></details>`:''}</label>`};
+ el.innerHTML=`<div class="note">Detection models are <b>averaged</b> (ensemble). A model whose input layers are missing from a storm's stack is <b>skipped automatically</b> — e.g. the <span class="mono">amphan_only</span> ones need date-named Amphan layers and never fit a new storm. Changes apply to the next <b>Run models</b>.</div>
+ <div class="card"><h2>Detection ensemble<span class="tag">after-storm radar</span></h2><div class="grid g2e">${det.map(m=>mc(m,`<input type="checkbox" name="det" value="${esc(m.file)}" ${m.enabled?'checked':''}>`)).join('')}</div></div>
+ <div class="card"><h2>Early-warning model<span class="tag w">pick one</span></h2><div class="grid g2e">${rk.map(m=>mc(m,`<input type="radio" name="risk" value="${esc(m.file)}" ${m.enabled?'checked':''}>`)).join('')}</div></div>
+ <div class="card"><h2>Flood cutoff</h2><div class="row"><input type="range" id="thr" min="0.3" max="0.7" step="0.05" value="${M.threshold}" style="width:240px"><b class="mono" id="thrv">${M.threshold}</b><span class="small muted">0.5 is the setting every score on this console used. Lower = more flood found, more false alarms.</span></div>
+ <div class="row" style="margin-top:12px"><button id="save">Save model settings</button><span class="small muted" id="saved"></span></div></div>`;
+ $('#thr').oninput=e=>$('#thrv').textContent=e.target.value;
+ $('#save').onclick=async()=>{try{await api('/api/config',{detect_models:[...document.querySelectorAll('input[name=det]:checked')].map(i=>i.value),risk_model:(document.querySelector('input[name=risk]:checked')||{}).value,threshold:+$('#thr').value});$('#saved').textContent='saved · applies on the next Run models';V.models(el)}catch(x){$('#saved').textContent=x.message}};
+};
+
+function runCard(r){const h=r.history.filter(e=>e.epoch!=null);const w=260,ht=90;
+ const iou=h.filter(e=>e.val_flood_iou!=null),loss=h.filter(e=>e.loss!=null);const ne=Math.max(1,...h.map(e=>e.epoch));
+ const mx=Math.max(.05,...iou.map(e=>e.val_flood_iou)),lmax=Math.max(...loss.map(e=>e.loss),1),lmin=Math.min(...loss.map(e=>e.loss),0);
+ const X=e=>4+(e-1)/Math.max(ne-1,1)*(w-8);
+ const pI=iou.map(e=>`${X(e.epoch).toFixed(1)},${(ht-6-(e.val_flood_iou/mx)*(ht-16)).toFixed(1)}`).join(' ');
+ const pL=loss.map(e=>`${X(e.epoch).toFixed(1)},${(ht-6-((e.loss-lmin)/Math.max(lmax-lmin,1e-6))*(ht-16)).toFixed(1)}`).join(' ');
+ const tag=r.status==='done'?'g':r.status==='training'?'w':'r';
+ return `<div class="run"><div class="row" style="justify-content:space-between"><b class="mono">${esc(r.name)}</b><span class="tag ${tag}">${esc(r.status)}</span></div>
+ <svg viewBox="0 0 ${w} ${ht}" preserveAspectRatio="none" aria-label="learning curve"><polyline points="${pL}" fill="none" stroke="var(--violet)" stroke-width="1.4" opacity=".7"/><polyline points="${pI}" fill="none" stroke="var(--cyan)" stroke-width="2"/></svg>
+ <div class="legend"><span><i class="sw" style="background:var(--cyan)"></i>validation IoU (max ${f3(iou.length?Math.max(...iou.map(e=>e.val_flood_iou)):null)})</span><span><i class="sw" style="background:var(--violet)"></i>loss</span></div>
+ <div class="small muted">${r.task||''} · ${h.length} epochs${r.best_epoch?' · best '+r.best_epoch:''}${r.test_iou!=null?` · <b style="color:var(--fg)">test IoU ${f3(r.test_iou)}</b>`:''}${r.pr_auc!=null?' · PR-AUC '+f3(r.pr_auc):''}${r.in_sample?' · <span style="color:var(--bad)">in-sample (trained on test)</span>':''}</div></div>`}
+
+V.bridge=async el=>{el.innerHTML='<div class="empty">reading messages…</div>';let B;try{B=await api('/api/bridge')}catch(e){el.innerHTML='<div class="empty">Bridge not set up.</div>';return}
+ el.innerHTML=`<div class="grid g2"><div class="card"><h2>Conversation · ${esc(B.me||'?')} ↔ ${esc(B.peer||'?')}</h2><div class="chat" id="chat">${B.messages.map(m=>`<div class="msg ${m.dir}"><div class="h"><span>${m.dir==='in'?'from '+esc(m.from):'sent'}</span><span>${esc(m.time)}</span>${m.attachments?`<span>📎 ${esc(m.attachments)}</span>`:''}</div><div class="s">${esc(m.subject||'(no subject)')}</div><div class="b">${esc(m.body)}</div></div>`).join('')||'<div class="empty">No messages yet.</div>'}</div></div>
+ <div class="card form"><h2>Send to ${esc(B.peer||'peer')}</h2><div class="note" style="margin-bottom:8px">Messages are <b>information, not commands</b>: the other side acts only within what Rj asked.</div><label>Subject</label><input id="bs" placeholder="e.g. Yaas test">
+ <label>Message</label><textarea id="bt" style="min-height:150px"></textarea><div class="row" style="margin-top:10px"><button id="bsend">Send over Taildrop</button></div><div class="err" id="berr"></div></div></div>`;
+ const c=$('#chat');c.scrollTop=c.scrollHeight;
+ $('#bsend').onclick=async()=>{$('#berr').textContent='sending…';try{await api('/api/bridge/send',{subject:$('#bs').value,text:$('#bt').value});V.bridge(el)}catch(x){$('#berr').textContent=x.message}}};
+
+V.system=async el=>{el.innerHTML='<div class="empty">reading…</div>';const y=await api('/api/system');const g=y.gpu;
+ el.innerHTML=`<div class="grid g3"><div class="card"><h2>GPU</h2>${g?`<div class="kpi c"><div class="v">${g.util}<small>%</small></div><div class="l">${esc(g.name)}</div></div><div class="gauge" style="margin:10px 0"><i style="width:${g.util}%"></i></div><div class="small muted">memory ${g.mem_used_mb} / ${g.mem_total_mb} MB · ${g.temp_c} °C</div>`:'<div class="muted">No NVIDIA GPU: models run on CPU.</div>'}</div>
+ <div class="card"><h2>Memory</h2>${y.ram?`<div class="kpi"><div class="v">${y.ram.free_gb}<small>GB free</small></div><div class="l">of ${y.ram.total_gb} GB</div></div><div class="gauge" style="margin:10px 0"><i style="width:${(1-y.ram.free_gb/y.ram.total_gb)*100}%"></i></div>`:'—'}</div>
+ <div class="card"><h2>Disk</h2><div class="kpi"><div class="v">${y.disk.free_gb}<small>GB free</small></div><div class="l">of ${y.disk.total_gb} GB</div></div></div></div>
+ ${apCard(y.autopilot)}<div class="card"><h2>Host</h2><table><tr><td class="muted">Machine</td><td class="mono">${esc(y.host)}</td></tr><tr><td class="muted">OS</td><td class="mono">${esc(y.os)}</td></tr><tr><td class="muted">Python</td><td class="mono">${esc(y.python)}</td></tr><tr><td class="muted">Clock</td><td class="mono">${esc(y.time)}</td></tr>
+ ${Object.entries(y.config).map(([k,v])=>`<tr><td class="muted">${esc(k)}</td><td class="mono" style="word-break:break-all">${esc(JSON.stringify(v))}</td></tr>`).join('')}</table></div>`};
+
+
+/* ---------- brain graph (real layer activity) ---------- */
+const BL=['enc0','enc1','enc2','enc3','enc4','dec3','dec2','dec1','dec0'];
+const BPOS={in:[40,58],enc0:[122,58],enc1:[168,122],enc2:[212,186],enc3:[250,250],enc4:[280,300],dec3:[310,250],dec2:[348,186],dec1:[392,122],dec0:[438,58],out:[520,58]};
+const BSIDE={in:'up',out:'up',enc0:'down',dec0:'down',enc4:'down',enc1:'l',enc2:'l',enc3:'l',dec1:'r',dec2:'r',dec3:'r'};
+function brainSVG(st,pulse,inLabel){
+ st=st||{};const val=n=>{const s=st[n];return s?(s.mean??s.mean_abs??0):0};const mx=Math.max(1e-6,...BL.map(val));
+ const path=['in',...BL,'out'].map((n,i)=>(i?'L':'M')+BPOS[n][0]+' '+BPOS[n][1]).join(' ');
+ let g=`<defs><radialGradient id="ng"><stop offset="0" stop-color="#eaffff"/><stop offset=".45" stop-color="#3ad6ff"/><stop offset="1" stop-color="#8f7cff" stop-opacity="0"/></radialGradient>
+ <filter id="gl" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5"/></filter></defs>`;
+ for(let i=0;i<4;i++){const a=BPOS['enc'+i],b=BPOS['dec'+i];g+=`<path d="M${a[0]} ${a[1]} Q ${(a[0]+b[0])/2} ${a[1]-26-i*4} ${b[0]} ${b[1]}" fill="none" stroke="var(--violet)" stroke-width="1.2" stroke-dasharray="3 5" opacity=".55"/>`}
+ g+=`<path id="bpath" d="${path}" fill="none" stroke="var(--line2)" stroke-width="2"/>`;
+ g+=`<path d="${path}" fill="none" stroke="var(--cyan)" stroke-width="2" opacity=".55" stroke-dasharray="6 10"><animate attributeName="stroke-dashoffset" from="64" to="0" dur="${pulse?'0.6':'3'}s" repeatCount="indefinite"/></path>`;
+ if(pulse)for(let k=0;k<3;k++)g+=`<circle r="3.5" fill="#eaffff"><animateMotion dur="1.1s" begin="${k*0.25}s" repeatCount="1" fill="freeze" path="${path}"/><animate attributeName="opacity" values="1;1;0" dur="1.1s" begin="${k*0.25}s" fill="freeze"/></circle>`;
+ const node=(n,lab,sub,t,act)=>{const [x,y]=BPOS[n];const ch=(st[n]&&st[n].channels)||0;const r=n==='in'||n==='out'?11:8+2.6*Math.log2(Math.max(ch,48)/48);
+   return `<circle cx="${x}" cy="${y}" r="${r*2.1}" fill="url(#ng)" opacity="${(0.15+0.85*t).toFixed(2)}" filter="url(#gl)"/>
+   <circle cx="${x}" cy="${y}" r="${r}" fill="var(--bg2)" stroke="var(--cyan)" stroke-width="${1+2*t}" opacity="${0.5+0.5*t}"/>
+   <circle cx="${x}" cy="${y}" r="${(r-3)*Math.sqrt(act)}" fill="var(--cyan)" opacity="${0.25+0.6*t}"/>
+   ${(()=>{const sd=BSIDE[n];const [tx,ty,an]=sd==='up'?[x,y-r-20,'middle']:sd==='down'?[x,y+r+14,'middle']:sd==='l'?[x-r-8,y-2,'end']:[x+r+8,y-2,'start'];return `<text x="${tx}" y="${ty}" text-anchor="${an}" class="bl">${lab}</text><text x="${tx}" y="${ty+12}" text-anchor="${an}" class="bs">${sub}</text>`})()}`};
+ g+=node('in','INPUT',inLabel||'radar',1,0.6);
+ BL.forEach(n=>{const s=st[n];g+=node(n,n.toUpperCase(),s?`${s.channels} ch · ${s.size[0]}²`:'—',val(n)/mx,s?(s.active??s.active_frac??0):0)});
+ g+=node('out','OUTPUT','flood map',1,0.6);
+ return `<svg viewBox="0 0 560 345" class="brain" role="img" aria-label="U-Net layer activity">${g}</svg>`}
+function actGrid(srcFn,st){return `<div class="acts">${BL.map(n=>{const s=(st||{})[n];return `<figure><img src="${srcFn(n)}" alt="${n} activity"><figcaption><b>${n}</b>${s?` · ${pct(s.active??s.active_frac)} active`:''}</figcaption></figure>`}).join('')}</div>`}
+const hm=s=>s==null?'—':s>=3600?`${Math.floor(s/3600)} h ${Math.round(s%3600/60)} min`:s>=60?`${Math.round(s/60)} min`:`${Math.round(s)} s`;
+
+/* ---------- Neural live: run the model tile by tile ---------- */
+V.neural=async el=>{
+ const s=cur();if(!s)return el.innerHTML='<div class="empty">No storm selected.</div>';
+ const M=await api('/api/models');const dets=M.models.filter(m=>m.task==='detect');
+ const def=(dets.find(m=>m.file==='detect_v4_plus70.pt')||dets[0]||{}).file;
+ el.innerHTML=`<div class="card"><h2>Live model test · ${esc(s.name)}<span class="tag" id="nstate">idle</span></h2>
+ <div class="row"><label class="small muted">Model</label><select id="nmodel">${dets.map(m=>`<option ${m.file===def?'selected':''}>${esc(m.file)}</option>`).join('')}</select>
+ <label class="small muted">Speed</label><input type="range" id="npace" min="0" max="1" step="0.05" value="0.35" style="width:120px"><span class="mono small" id="npv">0.35 s/tile pause</span>
+ <button id="nstart">▶ Start live test</button><button class="ghost" id="nstop">■ Stop</button><span class="err" id="nerr"></span></div>
+ <div class="small muted" style="margin-top:8px">The model reads the after-storm radar in 512×512-pixel tiles. Each tile: the map fills in, the network's <b>real</b> layer activity for that tile lights up, and ${s.has_refs?'a <b>running score</b> against the published map updates on held-out test blocks.':'(no reference map for this storm, so no score).'} The pause is only so you can watch; the real compute time is shown.</div></div>
+ <div class="kpis" id="nkpis"></div>
+ <div class="grid g2"><div class="card"><h2>Model scanning the map</h2><div class="scan" id="nscan"><img id="nradar" alt="radar"><canvas id="ncv"></canvas><div class="cur" id="ncur"></div></div>
+ <div class="legend" style="margin-top:8px"><span><i class="sw" style="background:#28c8ff"></i>flood (model)</span><span><i class="sw" style="background:#182c60"></i>permanent water</span><span><i class="sw" style="border:2px solid var(--cyan)"></i>tile being read now</span></div></div>
+ <div class="grid" style="align-content:start"><div class="card"><h2>Neural activity · current tile<span class="tag v">U-Net · <span id="nparams">?</span> M params</span></h2><div id="nbrain">${brainSVG({},false)}</div>
+ <div class="io"><figure><img id="nin" alt="radar input"><figcaption>input radar (VV)</figcaption></figure><div class="arrow">→</div><figure><img id="nout" alt="flood probability"><figcaption>output flood probability</figcaption></figure></div></div>
+ <div class="card"><h2>What each layer sees</h2><div id="nacts" class="small muted">Start a live test.</div><div class="small muted" style="margin-top:6px">Brightness = average strength of that layer's real activations on the current tile. Early layers see edges and texture; the deepest (enc4) sees the whole tile; the decoder rebuilds a sharp flood map.</div></div></div></div>`;
+ $('#npace').oninput=e=>$('#npv').textContent=e.target.value+' s/tile pause';
+ $('#nstart').onclick=async()=>{$('#nerr').textContent='';try{await api(`/api/live/${s.name}/start`,{model:$('#nmodel').value,pace:+$('#npace').value});S.nl=null;neuralPoll(s.name)}catch(x){$('#nerr').textContent=x.message}};
+ $('#nstop').onclick=()=>api(`/api/live/${s.name}/stop`,{}).catch(()=>{});
+ S.nl=null;neuralPoll(s.name);
+};
+async function neuralPoll(name){
+ clearTimeout(S.nt);if(page()!=='neural'||!cur()||cur().name!==name)return;
+ let L;try{L=await api('/api/live/'+name)}catch(e){S.nt=setTimeout(()=>neuralPoll(name),3000);return}
+ const run=L.process==='running'||L.state==='running';
+ const tag=$('#nstate');if(!tag)return;if(run)$('#jobPill').innerHTML=`<i class="dot run"></i><span>live test · ${L.done}/${L.total} tiles</span>`;tag.textContent=L.state==='none'?'idle':L.state;tag.className='tag '+(run?'w':L.state==='done'?'g':'');
+ if(L.error)$('#nerr').textContent=L.error.split('\n').filter(Boolean).slice(-1)[0];
+ if(L.state!=='none'&&L.grid){
+  const G=L.grid,cv=$('#ncv');
+  if(!S.nl||S.nl.started!==L.started){S.nl={started:L.started,drawn:new Set()};$('#nscan').style.aspectRatio=`${G.w}/${G.h}`;cv.width=G.w;cv.height=G.h;cv.getContext('2d').clearRect(0,0,G.w,G.h);$('#nradar').src=`/files/${name}/live/radar.png?s=${L.started}`;$('#nparams').textContent=L.params_m}
+  const ctx=cv.getContext('2d');
+  L.tiles.filter(t=>t[5]&&!S.nl.drawn.has(t[0])).forEach(t=>{S.nl.drawn.add(t[0]);const im=new Image();im.onload=()=>ctx.drawImage(im,Math.floor(t[2]/G.step),Math.floor(t[1]/G.step));im.src=`/files/${name}/live/tiles/t_${t[0]}.png?s=${L.started}`});
+  const c=L.current,cu=$('#ncur');
+  if(c&&run){cu.style.display='block';cu.style.left=c.col/G.W*100+'%';cu.style.top=c.row/G.H*100+'%';cu.style.width=c.w/G.W*100+'%';cu.style.height=c.h/G.H*100+'%'}else cu.style.display='none';
+  const el=(L.elapsed_s??((L.updated-L.started)));
+  $('#nkpis').innerHTML=`<div class="kpi c"><div class="v">${L.done}<small>/ ${L.total}</small></div><div class="l">tiles read</div><div class="bar" style="margin-top:6px"><i style="width:${L.done/L.total*100}%"></i></div></div>
+   <div class="kpi"><div class="v">${L.compute_ms??'—'}<small>ms</small></div><div class="l">real compute, this tile (avg ${L.avg_compute_ms??'—'} ms, ${esc(L.device)})</div></div>
+   <div class="kpi c"><div class="v">${km(L.flood_km2)}<small>km²</small></div><div class="l">flood found so far</div></div>
+   <div class="kpi"><div class="v">${km(L.covered_km2)}<small>km²</small></div><div class="l">radar area read so far</div></div>
+   ${L.has_score?`<div class="kpi p"><div class="v">${f3(L.test_iou)}</div><div class="l">running test IoU vs published map (P ${f3(L.test_precision)} · R ${f3(L.test_recall)})</div></div>`:''}
+   <div class="kpi"><div class="v">${c?c.flood_pct+'<small>%</small>':'—'}</div><div class="l">of this tile flooded</div></div>
+   <div class="kpi"><div class="v">${hm(el)}</div><div class="l">elapsed · ${esc(L.model)}</div></div>`;
+  if(c&&(!S.nl.k||S.nl.k!==c.k)){S.nl.k=c.k;const q=`?k=${c.k}&s=${L.started}`;
+   $('#nbrain').innerHTML=brainSVG(L.stats,run,'16 layers');$('#nin').src=`/files/${name}/live/in.png${q}`;$('#nout').src=`/files/${name}/live/out.png${q}`;
+   $('#nacts').innerHTML=actGrid(n=>`/files/${name}/live/act_${n}.png${q}`,L.stats);$('#nacts').classList.remove('muted')}
+ }
+ S.nt=setTimeout(()=>neuralPoll(name),run?450:4000);
+}
+
+/* ---------- Training: live run + all runs ---------- */
+V.training=async el=>{
+ el.innerHTML=`<div id="tlive" class="grid"><div class="empty">reading live training…</div></div><div id="tall" class="grid"></div>`;
+ S.tl=null;trainLive();
+ const T=await api('/api/training');
+ $('#tall').innerHTML=T.kits.length?`${T.log?`<div class="card"><h2>Training queue log</h2><pre>${esc(T.log)}</pre></div>`:''}${T.kits.slice().reverse().map(k=>`<div class="card"><h2>${esc(k.kit)} · all runs<span class="tag v">${k.runs.length} runs</span></h2><div class="runs">${k.runs.map(runCard).join('')}</div></div>`).join('')}`:'<div class="empty">No training kits configured (kit_dirs in ops_config.json).</div>';
+};
+async function trainLive(){
+ clearTimeout(S.tt);if(page()!=='training')return;
+ const hm_=location.hash.match(/^#training-([A-Za-z0-9_]+)\.([A-Za-z0-9_-]+)$/);if(!S.tsel&&hm_)S.tsel={kit:hm_[1],run:hm_[2]};
+ const q=S.tsel?`?kit=${encodeURIComponent(S.tsel.kit)}&run=${encodeURIComponent(S.tsel.run)}`:'';
+ let L;try{L=await api('/api/train/live'+q)}catch(e){$('#tlive').innerHTML=`<div class="empty">${esc(e.message)}</div>`;S.tt=setTimeout(trainLive,8000);return}
+ const box=$('#tlive');if(!box)return;
+ if(!L.run){box.innerHTML='<div class="empty">No training runs found.</div>';return}
+ const st=L.status||{},key=L.kit+'/'+L.run+'/'+L.img_t;
+ const img=k=>`/api/train/img?kit=${encodeURIComponent(L.kit)}&run=${encodeURIComponent(L.run)}&k=${k}&t=${L.img_t}`;
+ if(!S.tl||S.tl.key!==key){S.tl={key};
+  box.innerHTML=`<div class="card"><h2>Training · <span class="mono" style="text-transform:none;letter-spacing:0;color:var(--fg)">${esc(L.run)}</span> <span class="small muted" style="text-transform:none;letter-spacing:0">(${esc(L.kit)})</span><span class="tag" id="tstate"></span></h2>
+  <div class="row"><label class="small muted">View run</label><select id="trun">${L.runs.map(r=>`<option value="${esc(r.kit+'|'+r.run)}" ${r.kit===L.kit&&r.run===L.run?'selected':''}>${r.live?'● ':''}${esc(r.run)} (${esc(r.kit.replace('train_kit_',''))})</option>`).join('')}</select>
+  ${L.stoppable?'<button class="ghost" id="tstop">■ Stop this run</button>':''}<span class="sp" style="flex:1"></span>
+  <label class="small muted">New run</label><select id="tkit">${L.kits.map(k=>`<option ${k===L.kit?'selected':''}>${esc(k)}</option>`).join('')}</select>
+  <select id="tpre">${Object.entries(L.presets).map(([k,v])=>`<option value="${k}" title="${esc(v)}">${k==='quick_demo'?'Quick demo (~15 min)':'Seed check (~4 h)'}</option>`).join('')}</select>
+  <input id="tseed" type="number" min="1" max="99" value="1" style="width:64px" aria-label="seed"><button id="tgo">▶ Start training</button></div><div class="err" id="terr"></div>
+  <div class="small muted" id="tpdesc"></div></div>
+  <div class="kpis" id="tkpis"></div>
+  <div class="grid g2"><div class="card"><h2>Loss · last 300 training steps<span class="tag">${L.live?'live, every 10 steps':'final'}</span></h2><div id="tloss"></div></div>
+  <div class="card"><h2>Learning curve · per epoch</h2><div id="tepoch"></div></div></div>
+  <div class="grid g2"><div class="card"><h2>Neural activity · fixed validation patch<span class="tag v">${L.act?'epoch '+(L.act._meta||{}).epoch:'not yet'}</span></h2>
+  ${L.act?`${brainSVG(L.act,!!L.live,(st.channels||[]).length+' layers')}<div class="io wide">${['in_before','in_after','in_change','label','pred','flood_prob'].map(k=>`<figure><img src="${img(k)}" alt="${k}"><figcaption>${{in_before:'radar before',in_after:'radar after',in_change:'change',label:'truth (labels)',pred:'model says',flood_prob:'flood probability'}[k]}</figcaption></figure>`).join('')}</div>${actGrid(n=>img(n),L.act)}`:`<div class="empty">Appears at the first validation (every 2nd epoch). Runs trained with --trainval never validate, so they have none.</div>`}
+  <div class="small muted" style="margin-top:6px">Same patch every time, so you can watch the network learn: compare "model says" with "truth" as epochs pass.</div></div>
+  <div class="card"><h2>Validation map<span class="tag">updates each validation</span></h2>${L.has_preview?`<img src="${img('preview')}" alt="validation flood map" style="width:100%;border-radius:10px;border:1px solid var(--line2);background:#03060c">`:'<div class="empty">Appears at the first validation.</div>'}
+  <div class="legend" style="margin-top:8px"><span><i class="sw" style="background:#28c8ff"></i>flood</span><span><i class="sw" style="background:#182c6e"></i>water</span><span><i class="sw" style="background:#464c5c"></i>dry</span></div></div></div>`;
+  $('#trun').onchange=e=>{const [k,r]=e.target.value.split('|');S.tsel={kit:k,run:r};S.tl=null;trainLive()};
+  const pd=()=>{$('#tpdesc').textContent=L.presets[$('#tpre').value]||'';$('#tseed').hidden=$('#tpre').value!=='seed_check'};$('#tpre').onchange=pd;pd();
+  $('#tgo').onclick=async()=>{$('#terr').textContent='starting…';try{const r=await api('/api/train/start',{kit:$('#tkit').value,preset:$('#tpre').value,seed:+$('#tseed').value});S.tsel={kit:r.kit,run:r.run};S.tl=null;$('#terr').textContent='';setTimeout(trainLive,4000)}catch(x){$('#terr').textContent=x.message}};
+  if($('#tstop'))$('#tstop').onclick=async()=>{try{await api('/api/train/stop',{kit:L.kit,run:L.run});S.tl=null;trainLive()}catch(x){$('#terr').textContent=x.message}};
+ }
+ const tg=$('#tstate');const dead=!L.live&&['starting','training','validating'].includes(st.state);tg.textContent=L.live?'● live · '+(st.state||''):dead?'stopped · last update '+new Date((st.updated||0)*1000).toLocaleString():(st.state||'—');tg.className='tag '+(L.live?'w':st.state==='done'?'g':'r');
+ const ep=st.epoch||0,E=st.epochs||0;const h=L.history||[];const best=h.filter(e=>e.val_flood_iou!=null);
+ $('#tkpis').innerHTML=`<div class="kpi c"><div class="v">${ep}<small>/ ${E}</small></div><div class="l">epoch</div><div class="bar" style="margin-top:6px"><i style="width:${E?((ep-1)+(st.step||0)/(st.steps||1))/E*100:0}%"></i></div></div>
+  <div class="kpi"><div class="v">${st.step??'—'}<small>/ ${st.steps??''}</small></div><div class="l">step in this epoch</div></div>
+  <div class="kpi c"><div class="v">${st.loss_avg!=null?st.loss_avg.toFixed(3):'—'}</div><div class="l">loss (avg of last 50 steps)</div></div>
+  <div class="kpi p"><div class="v">${best.length?f3(Math.max(...best.map(e=>e.val_flood_iou))):'—'}</div><div class="l">best validation flood IoU</div></div>
+  <div class="kpi"><div class="v">${st.sec_per_step!=null?st.sec_per_step.toFixed(2):'—'}<small>s</small></div><div class="l">per step (batch ${st.batch??'?'} × ${st.patch??'?'}²)</div></div>
+  <div class="kpi"><div class="v">${L.live?hm(st.eta_sec):'—'}</div><div class="l">time left (estimate)</div></div>
+  <div class="kpi"><div class="v">${st.gpu_mem_peak_gb??'—'}<small>GB</small></div><div class="l">GPU memory peak · ${esc(st.gpu||st.device||'')}</div></div>
+  <div class="kpi"><div class="v">${st.lr!=null?st.lr.toExponential(1):'—'}</div><div class="l">learning rate</div></div>`;
+ $('#tloss').innerHTML=lossChart(st.recent_losses||[]);
+ $('#tepoch').innerHTML=epochChart(h);
+ S.tt=setTimeout(trainLive,L.live?2000:10000);
+}
+function lossChart(a){if(!a.length)return '<div class="empty">no steps yet</div>';const w=600,h=180,p=44;const mx=Math.max(...a),mn=Math.min(...a);
+ const X=i=>p+i/Math.max(a.length-1,1)*(w-p-6),Y=v=>h-p+6-(v-mn)/Math.max(mx-mn,1e-6)*(h-p-6);
+ const sm=a.map((_,i)=>{const s=a.slice(Math.max(0,i-24),i+1);return s.reduce((x,y)=>x+y,0)/s.length});
+ const grid=[0,.5,1].map(t=>{const v=mn+(mx-mn)*t;return `<line x1="${p}" x2="${w-6}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${p-4}" y="${Y(v)+4}" text-anchor="end" class="ax">${v.toFixed(2)}</text>`}).join('');
+ return `<svg viewBox="0 0 ${w} ${h}" class="chart">${grid}<polyline points="${a.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ')}" fill="none" stroke="var(--violet)" stroke-width="1" opacity=".55"/><polyline points="${sm.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ')}" fill="none" stroke="var(--cyan)" stroke-width="2.2"/><circle cx="${X(a.length-1)}" cy="${Y(a[a.length-1])}" r="4" fill="var(--cyan)"><animate attributeName="r" values="3;6;3" dur="1.4s" repeatCount="indefinite"/></circle><text x="${w-6}" y="${h-4}" text-anchor="end" class="ax">steps →</text></svg>
+ <div class="legend"><span><i class="sw" style="background:var(--violet)"></i>each step</span><span><i class="sw" style="background:var(--cyan)"></i>smoothed</span></div>`}
+function epochChart(h){const e=h.filter(x=>x.epoch!=null);if(!e.length)return '<div class="empty">first epoch not finished yet</div>';const w=600,ht=180,p=44;const ne=Math.max(...e.map(x=>x.epoch),2);
+ const iou=e.filter(x=>x.val_flood_iou!=null),ls=e.filter(x=>x.loss!=null);const imx=Math.max(.1,...iou.map(x=>x.val_flood_iou))*1.1;const lmx=Math.max(...ls.map(x=>x.loss)),lmn=Math.min(...ls.map(x=>x.loss));
+ const X=v=>p+(v-1)/(ne-1)*(w-p-30),Yi=v=>ht-p+6-v/imx*(ht-p-6),Yl=v=>ht-p+6-(v-lmn)/Math.max(lmx-lmn,1e-6)*(ht-p-6);
+ const grid=[0,.5,1].map(t=>`<line x1="${p}" x2="${w-30}" y1="${Yi(imx*t)}" y2="${Yi(imx*t)}" stroke="var(--line)"/><text x="${p-4}" y="${Yi(imx*t)+4}" text-anchor="end" class="ax">${(imx*t).toFixed(2)}</text>`).join('');
+ return `<svg viewBox="0 0 ${w} ${ht}" class="chart">${grid}<polyline points="${ls.map(x=>X(x.epoch).toFixed(1)+','+Yl(x.loss).toFixed(1)).join(' ')}" fill="none" stroke="var(--violet)" stroke-width="1.6" opacity=".8"/>
+ <polyline points="${iou.map(x=>X(x.epoch).toFixed(1)+','+Yi(x.val_flood_iou).toFixed(1)).join(' ')}" fill="none" stroke="var(--cyan)" stroke-width="2.4"/>${iou.map(x=>`<circle cx="${X(x.epoch)}" cy="${Yi(x.val_flood_iou)}" r="2.5" fill="var(--cyan)"/>`).join('')}<text x="${w-30}" y="${ht-4}" text-anchor="end" class="ax">epoch ${ne}</text></svg>
+ <div class="legend"><span><i class="sw" style="background:var(--cyan)"></i>validation flood IoU (left axis)</span><span><i class="sw" style="background:var(--violet)"></i>training loss (scaled)</span></div>`}
+
+function apStop(){api('/api/autopilot/stop',{}).then(()=>render()).catch(()=>{})}
+function apCard(a){if(!a)return '<div class="card"><h2>Autopilot</h2><div class="small muted">Not started on this machine.</div></div>';
+ const sc=a.seed_check;return `<div class="card"><h2>Autopilot<span class="tag ${a.alive?'g':'r'}">${a.alive?'running':esc(a.state)}</span></h2>
+ <div class="kpis"><div class="kpi"><div class="v">${a.pc_online?'online':'offline'}</div><div class="l">PC (mainpc) over Tailscale</div></div>
+ <div class="kpi"><div class="v">${new Date(a.ends*1000).toLocaleString([], {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div><div class="l">stops by itself at</div></div>
+ <div class="kpi"><div class="v">${sc?f3(sc.diff_published):'waiting'}</div><div class="l">seed check: IoU difference by chance</div></div>
+ <div class="kpi"><div class="v">${(a.kits_launched||[]).length}</div><div class="l">new kits auto-trained</div></div></div>
+ <div class="small muted" style="margin:8px 0">Every 2 min: fetch PC messages · when the seed run ends, score it on both maps and send the report to the PC · train any new kit the PC sends (run_kit.ps1) and send the results back. Never deletes anything.${a.waiting?' · <b>'+esc(a.waiting)+'</b>':''}${a.last_error?' · <span style="color:var(--bad)">'+esc(a.last_error)+'</span>':''}</div>
+ <pre>${esc(a.log||'')}</pre>${a.alive?'<div class="row" style="margin-top:8px"><button class="ghost" onclick="apStop()">■ Stop autopilot</button></div>':''}</div>`}
+async function render(){nav();const el=$('#view');const p=page();try{await (V[p]||V.control)(el)}catch(e){el.innerHTML=`<div class="empty">Error: ${esc(e.message)}</div>`}}
+$('#stormSel').onchange=e=>{S.cur=e.target.value;ls.set('storm',S.cur);S.sig='';loadStorms()};
+addEventListener('hashchange',()=>{S.sig='';loadStorms()});
+async function tick(){try{await loadStorms();const y=S.sys;$('#foot').innerHTML=`${esc(location.host)}<br>${y?esc(y.host):''}`}catch(e){$('#jobPill').innerHTML='<i class="dot bad"></i><span>console offline</span>'}
+ const busy=S.storms.some(s=>s.job&&s.job.state==='running');setTimeout(tick,busy?2500:12000)}
+tick();
+</script>
+</body>
+</html>

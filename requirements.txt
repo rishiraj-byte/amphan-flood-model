@@ -1,0 +1,4 @@
+# tested with these versions (laptop, Windows 11, RTX 3050 6 GB, CUDA 12.6)
+torch==2.14.1
+numpy==2.5.4
+rasterio==1.5.2   # optional: without it no GeoTIFFs, the .npy/.png outputs still work
