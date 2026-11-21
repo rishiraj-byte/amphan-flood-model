@@ -111,3 +111,7 @@ v1, 21 Nov 2026. Training continues, with every decision written to [`docs/TRAIN
 - **Independent check:** the NASA JPL ARIA flood proxy map for Cyclone Amphan (Bangladesh).
 
 The model outputs in this repo are derived from these data. Please credit them if you use the maps.
+
+## License
+
+The code and the trained models are under the [MIT License](LICENSE). The source data above keep their own terms and credit requirements.
