@@ -62,6 +62,9 @@ def main():
     ap.add_argument("--results", default=str(HERE / "storms" / "Amphan_2020_kitv4" / "out"))
     ap.add_argument("--readme", default=str(HERE / "FINAL_README.md"))
     ap.add_argument("--pdf", default=str(ROOT / "Amphan_Flood_Model_Handbook.pdf"))
+    ap.add_argument("--extra", action="append", default=[],
+                    help="more storm results: FOLDER_NAME=PATH, e.g. results_yaas_2021=ops/storms/Yaas_2021/out")
+    ap.add_argument("--log", default=str(ROOT / "TRAINING_LOG.md"))
     a = ap.parse_args()
     cfg = json.loads((HERE / "ops_config.json").read_text(encoding="utf-8"))
     res = Path(a.results)
@@ -119,7 +122,31 @@ def main():
     from predict import write_png
     overlay(res / "layers" / "radar_after.png", res / "layers" / "flood.png", r / "preview_flood_over_radar.png", write_png)
     overlay(res / "layers" / "radar_before.png", res / "layers" / "risk.png", r / "preview_risk_over_radar.png", write_png)
+    # more storms (same models + settings only)
+    for spec in a.extra:
+        name, _, path = spec.partition("=")
+        xr = Path(path) if Path(path).is_absolute() else ROOT / path
+        xs = json.loads((xr / "summary.json").read_text(encoding="utf-8"))
+        if (sorted(xs["detect"]["models"]), xs["risk"]["model"], xs["threshold"], xs.get("tta", 1)) != \
+                (sorted(cfg["detect_models"]), cfg["risk_model"], cfg["threshold"], cfg.get("tta", 1)):
+            raise SystemExit(f"{xr}: not made with the settings in ops_config.json")
+        xd = pkg / name
+        (xd / "layers").mkdir(parents=True)
+        for f in ("flood_class.tif", "flood_probability.tif", "flood_risk.tif", "flood_map.png", "risk_map.png",
+                  "summary.json", "eval.json", "log.txt"):
+            if (xr / f).exists():
+                shutil.copy2(xr / f, xd / f)
+        for f in (xr / "layers").glob("*.png"):
+            if f.name != "prob_gray.png":
+                shutil.copy2(f, xd / "layers" / f.name)
+        if (xr / "layers" / "radar_after.png").exists():
+            overlay(xr / "layers" / "radar_after.png", xr / "layers" / "flood.png", xd / "preview_flood_over_radar.png", write_png)
+            overlay(xr / "layers" / "radar_before.png", xr / "layers" / "risk.png", xd / "preview_risk_over_radar.png", write_png)
     shutil.copy2(a.readme, pkg / "README.md")
+    if Path(a.log).exists():
+        shutil.copy2(a.log, pkg / "TRAINING_LOG.md")
+    from build_dashboard import build as build_dashboard
+    build_dashboard(pkg)
     if Path(a.pdf).exists():
         shutil.copy2(a.pdf, pkg / Path(a.pdf).name)
     files = sorted(p for p in pkg.rglob("*") if p.is_file())

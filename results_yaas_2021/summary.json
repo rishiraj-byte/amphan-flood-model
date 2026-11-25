@@ -1,0 +1,66 @@
+{
+ "name": "Yaas_2021",
+ "created": "2026-11-25 13:25",
+ "grid": {
+  "res": 0.001,
+  "factor": 2,
+  "cgx0": 85192,
+  "cgy_top": 23893,
+  "W": 4616,
+  "H": 4288,
+  "west": 85.19200000000001,
+  "north": 23.894000000000002,
+  "crs": "EPSG:4326"
+ },
+ "threshold": 0.3,
+ "tta": 8,
+ "device": "cuda",
+ "detect": {
+  "models": [
+   "detect_v3_ops70.pt",
+   "detect_v4_plus70.pt"
+  ],
+  "flood_km2": 2270.4,
+  "permanent_water_km2": 89784.9,
+  "radar_covered_km2": 212641.7,
+  "flood_km2_if_cutoff_0.3": 2270.4,
+  "flood_km2_if_cutoff_0.7": 1116.4
+ },
+ "tifs": [
+  "flood_class.tif",
+  "flood_probability.tif",
+  "flood_risk.tif"
+ ],
+ "risk": {
+  "model": "risk_v4_plus.pt",
+  "zones": {
+   "top_5pct": {
+    "risk_at_least": 0.472,
+    "km2": 10538.7
+   },
+   "top_10pct": {
+    "risk_at_least": 0.184,
+    "km2": 21183.7
+   },
+   "top_20pct": {
+    "risk_at_least": 0.037,
+    "km2": 42430.8
+   }
+  },
+  "risk_scale_note": "relative ranking; the map colours scale to the 98th percentile"
+ },
+ "eval": false,
+ "preview": {
+  "step": 4,
+  "w": 1154,
+  "h": 1072
+ },
+ "layers": [
+  "flood",
+  "prob",
+  "prob_gray",
+  "radar_after",
+  "radar_before",
+  "risk"
+ ]
+}

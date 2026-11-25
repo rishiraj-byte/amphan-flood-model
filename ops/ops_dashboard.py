@@ -249,6 +249,57 @@ def ram():
         return None
 
 
+_PC_CACHE = {"t": 0, "v": None}
+
+
+def pc_online():
+    """mainpc online over Tailscale (cached 60 s)."""
+    if time.time() - _PC_CACHE["t"] < 60:
+        return _PC_CACHE["v"]
+    v = None
+    try:
+        b = rjson(HERE / "bridge_config.json", {}) or {}
+        r = subprocess.run([b.get("tailscale", "tailscale"), "status", "--json"], capture_output=True, text=True, timeout=8)
+        peers = json.loads(r.stdout).get("Peer", {}) if r.returncode == 0 else {}
+        for p in peers.values():
+            if p.get("HostName", "").lower() == str(b.get("peer_host", "mainpc")).lower():
+                v = bool(p.get("Online"))
+    except (OSError, subprocess.SubprocessError, ValueError):
+        pass
+    _PC_CACHE.update(t=time.time(), v=v)
+    return v
+
+
+def brain_info():
+    """Everything the Brain window shows besides the live run: research loop scores, recent log, GPU, PC link."""
+    st = rjson(HERE / "improve" / "research_state.json", {}) or {}
+    best, spread = st.get("best", {}), st.get("spread", 0)
+    log = HERE.parent / "TRAINING_LOG.md"
+    entries = []
+    if log.exists():
+        for blk in log.read_text(encoding="utf-8", errors="replace").split("\n\n"):
+            m = re.match(r"\*\*(\d{4}-\d\d-\d\d \d\d:\d\d)\*\*\s*(.*)", blk.strip(), re.S)
+            if m:
+                entries.append({"time": m[1], "text": re.sub(r"\*\*", "", m[2]).strip()[:400]})
+    gpu = system_info().get("gpu")
+    inbox = sorted((HERE / "bridge" / "inbox").glob("msg_*_pc.md"))
+    last_pc = None
+    if inbox:
+        h = dict(ln.split(":", 1) for ln in inbox[-1].read_text(encoding="utf-8", errors="replace").split("\n---")[0].splitlines() if ":" in ln)
+        last_pc = {"time": h.get("time", "").strip(), "subject": h.get("subject", "").strip()}
+    yaas = None
+    for d in (HERE / "bridge" / "files", Path.home() / "Downloads", HERE / "storms" / "Yaas_2021"):
+        f = d / "yaas_stack_v1.tar"
+        if f.exists():
+            yaas = {"where": str(f), "gb": round(f.stat().st_size / 2**30, 2)}
+            break
+    done = (HERE / "storms" / "Yaas_2021" / "out" / "summary.json")
+    return {"scores": st.get("scores", {}), "best": {"name": best.get("name"), "mean": best.get("mean")},
+            "spread": spread, "bar": round((best.get("mean") or 0) + spread, 4), "tried": st.get("tried", []),
+            "log": entries[-10:], "gpu": gpu, "time": time.strftime("%H:%M:%S"),
+            "pc": {"online": pc_online(), "last_msg": last_pc, "yaas_tar": yaas, "yaas_mapped": done.exists()}}
+
+
 def autopilot_info():
     st = rjson(HERE / "autopilot_state.json")
     if not st:
@@ -520,6 +571,11 @@ class H(BaseHTTPRequestHandler):
             if p == "/":
                 page = HERE / "ops_console.html"
                 return self.send(200, page.read_bytes() if page.exists() else b"ops_console.html missing", "text/html; charset=utf-8")
+            if p == "/brain":
+                page = HERE / "brain.html"
+                return self.send(200, page.read_bytes() if page.exists() else b"brain.html missing", "text/html; charset=utf-8")
+            if p == "/api/brain":
+                return self.send(200, brain_info())
             if p == "/api/storms":
                 return self.send(200, all_storms())
             if p == "/api/models":

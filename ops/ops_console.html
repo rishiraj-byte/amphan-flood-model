@@ -155,6 +155,17 @@ details summary{cursor:pointer;color:var(--mute);font-size:12px}
 .acts figcaption b{color:var(--fg);font-family:var(--m);font-weight:600}
 .chart{width:100%;height:auto;display:block}.chart .ax{font:12px var(--m);fill:var(--mute)}
 .kpi .bar{height:5px}
+/* simple mode (25 Nov): storm tabs, three big numbers, advanced settings folded away */
+.stabs{display:flex;gap:8px;flex-wrap:wrap}
+.stab{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 16px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--fg);font-weight:600;cursor:pointer}
+.stab small{font-weight:400;color:var(--mute);font-size:12px}
+.stab.on{border-color:var(--cyan);box-shadow:inset 0 0 0 1px var(--cyan);color:var(--cyan)}
+.big3 .kpi .v{font-size:clamp(26px,3vw,36px)}
+.big3 .kpi .l{font-size:13px;line-height:1.4}
+details.adv>summary{font-size:13px;padding:2px 0}
+details.adv[open]>summary{margin-bottom:12px}
+.navmore{margin-top:12px;background:none;border:1px dashed var(--line2);color:var(--mute);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;text-align:left}
+.navmore:hover{color:var(--fg);border-color:var(--cyan)}
 </style>
 </head>
 <body>
@@ -217,9 +228,19 @@ async function api(p,b){const r=await fetch(p,b?{method:'POST',headers:{'Content
 const page=()=>(location.hash.slice(1)||'control').split('-')[0];
 const cur=()=>S.storms.find(s=>s.name===S.cur)||S.storms[0]||null;
 
+const SIMPLE=[['control','Flood map'],['neural','Watch it work']];
+const NICE={Amphan_2020_kitv4:'Amphan 2020',Yaas_2021:'Yaas 2021',Amphan_2020_demo:'Amphan demo (small area)'};
+const nice=n=>NICE[n]||String(n).replace(/_/g,' ');
+const allPages=()=>ls.get('allPages')==='1';
 function nav(){
- $('#nav').innerHTML=PAGES.map(([k,t])=>`<a href="#${k}" class="${page()===k?'on':''}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg><span>${t}</span></a>`).join('');
- $('#title').textContent=(PAGES.find(p=>p[0]===page())||PAGES[0])[1];
+ const p=page(),all=allPages(),list=all?PAGES:SIMPLE;
+ const shown=list.some(x=>x[0]===p)?list:list.concat(PAGES.filter(x=>x[0]===p));   // a hidden page you opened stays visible
+ const name=k=>((SIMPLE.find(x=>x[0]===k))||PAGES.find(x=>x[0]===k)||PAGES[0])[1];
+ $('#nav').innerHTML=shown.map(([k])=>`<a href="#${k}" class="${p===k?'on':''}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg><span>${name(k)}</span></a>`).join('')
+  +`<button type="button" class="navmore" id="navMore">${all?'− Fewer pages':'+ All tools'}</button>`;
+ $('#navMore').onclick=()=>{ls.set('allPages',all?'0':'1');render()};
+ $('#title').textContent=name(p);
+ const hideSel=p==='control';$('#stormSel').hidden=hideSel;document.querySelector('label[for=stormSel]').hidden=hideSel;
 }
 function chrome(){
  const sel=$('#stormSel');const names=S.storms.map(s=>s.name);
@@ -350,40 +371,48 @@ async function cutExplorer(s){
   ovc.putImageData(img,0,0);ctx.clearRect(0,0,W,H);ctx.drawImage(bg,0,0,W,H);ctx.drawImage(ov,0,0);$('#xThrV').textContent=c.toFixed(2);$('#xKm').textContent='≈ '+km(a)+' km² flood'};
  const r=$('#xThr');r.oninput=()=>draw(+r.value);draw(+r.value)}
 V.control=async el=>{
+ const hs=location.hash.slice(1).split('-').slice(1).join('-');   // #control-<storm> opens that storm
+ if(hs&&S.storms.some(x=>x.name===hs)&&S.cur!==hs){S.cur=hs;ls.set('storm',hs)}
  const s=cur();const [M,I]=await Promise.all([api('/api/models'),api('/api/improve').catch(()=>({}))]);S.models=M;
  const det=M.models.filter(m=>m.task==='detect'),rk=M.models.filter(m=>m.task!=='detect');
  const sm=(s&&s.summary)||{},d=sm.detect,E=(s&&s.eval&&s.eval.ensemble)||{},it=E.independent_test,pt=E.published_test;
- const run=!!(s&&s.job&&s.job.state==='running'),rec=I.recipe;
- el.innerHTML=`<div class="note"><b>Use the model here.</b> 1 · pick the storm, models and settings → 2 · run the full map (1–3 min on the GPU; TTA 8 ≈ 8×) or watch it scan tile by tile → 3 · drag the cutoff on the result. The published map is where the training labels came from, so the <b>independent</b> score is the honest one.</div>
- <div class="kpis">
-  <div class="kpi c"><div class="v">${km(d&&d.flood_km2)}<small>km²</small></div><div class="l">Flood · last run (cutoff ${sm.threshold??'—'}${sm.tta?' · TTA '+sm.tta:''})</div></div>
-  <div class="kpi p"><div class="v">${f3(it&&it.iou)}</div><div class="l">Test IoU · independent map (honest)</div></div>
-  <div class="kpi"><div class="v">${f3(pt&&pt.iou)}</div><div class="l">Test IoU · published map</div></div>
-  <div class="kpi"><div class="v">${it?pct(it.precision)+' / '+pct(it.recall):'—'}</div><div class="l">Precision / recall · independent</div></div></div>
- <div class="grid g2"><div class="card form"><h2>1 · Set up the run<span class="tag">${s?esc(s.name):'no storm'}</span></h2>
-  <label>Storm</label><select id="cStorm">${S.storms.map(x=>`<option ${s&&x.name===s.name?'selected':''}>${esc(x.name)}</option>`).join('')}</select>
+ const run=!!(s&&s.job&&s.job.state==='running'),rec=I.recipe,z=((sm.risk||{}).zones||{}).top_10pct;
+ const rs=((s&&s.eval&&s.eval.risk)||{}).share_of_real_flood_in_top10pct_risk;
+ const storms=S.storms.filter(x=>x.name!=='Amphan_2020_demo'||allPages()||(s&&x.name===s.name)).sort((a,b)=>a.name.localeCompare(b.name));
+ const advOpen=ls.get('advOpen')==='1';
+ el.innerHTML=`<div class="stabs">${storms.map(x=>{const xd=x.summary&&x.summary.detect;return `<button type="button" class="stab ${s&&x.name===s.name?'on':''}" data-s="${esc(x.name)}">${esc(nice(x.name))}<small>${xd?km(xd.flood_km2)+' km² flood':'not mapped yet'}</small></button>`}).join('')}</div>
+ <div class="kpis big3">
+  <div class="kpi c"><div class="v">${km(d&&d.flood_km2)}<small>km²</small></div><div class="l">Flooded area the model found</div></div>
+  <div class="kpi p"><div class="v">${it?f3(it.iou):'no score'}</div><div class="l">${it?`Honest score against the NASA map. About ${Math.round(it.precision*10)} in 10 of its flood calls are right; it finds about ${Math.round(it.recall*10)} in 10 flooded cells.`:'No independent flood map exists for this storm, so it cannot be scored. Check it by eye.'}</div></div>
+  <div class="kpi o"><div class="v">${km(z&&z.km2)}<small>km²</small></div><div class="l">Early warning: the riskiest 10 % of land${rs!=null?`. It held ${Math.round(rs*100)} % of the flood that came.`:'.'}</div></div></div>
+ <div class="card"><h2>${s?esc(nice(s.name)):'No storm'} · flood map<span class="tag">cyan = flood</span></h2>
+  <div class="xwrap" id="xWrap"><div class="empty">${sm.layers&&sm.layers.includes('prob_gray')?'loading map…':'Not mapped yet. Press ▶ Run the model.'}</div></div>
+  <div class="row" style="margin-top:10px"><span class="small muted">How sure must it be?</span><input type="range" id="xThr" min="0.05" max="0.95" step="0.01" value="${sm.threshold??0.3}" style="flex:1;min-width:140px"><b class="mono" id="xThrV"></b><span class="mono" id="xKm" style="color:var(--cyan)"></span></div>
+  <div class="small muted">Slide left to show more possible flood, right to show only the surest. Recommended: ${esc(M.threshold)}. The slider only changes this picture.</div>
+  <div class="row" style="margin-top:12px"><button id="cRun" ${run||!s||!s.stack_ready?'disabled':''}>▶ Run the model${d?' again':''}</button><button class="ghost" id="cLive" ${!s||!s.stack_ready?'disabled':''}>Watch it work</button><span class="small muted" id="cMsg">${run?'running… this page updates by itself':''}</span></div></div>
+ <details class="adv card" id="cAdv" ${advOpen?'open':''}><summary>Advanced: models, settings, log and notes</summary>
+ <div class="grid g2"><div class="form"><h2>Settings<span class="tag">saved for every run</span></h2>
   <label>Detection models · averaged</label><div class="cpick">${det.map(m=>`<label class="${m.enabled?'on':''}"><input type="checkbox" name="cdet" value="${esc(m.file)}" ${m.enabled?'checked':''}><span class="mono">${esc(m.file.replace(/^detect_|\.pt$/g,''))}</span><small>${esc(m.note||'')}</small></label>`).join('')}</div>
   <label>Early-warning model</label><select id="cRisk" style="width:100%">${rk.map(m=>`<option value="${esc(m.file)}" ${m.enabled?'selected':''}>${esc(m.file)}</option>`).join('')}</select>
   <div class="two"><div><label>Flood cutoff <b class="mono" id="cThrV">${M.threshold}</b></label><input type="range" id="cThr" min="0.2" max="0.8" step="0.05" value="${M.threshold}"></div>
   <div><label>Test-time augmentation</label><select id="cTta" style="width:100%">${[[1,'off · fastest'],[4,'4 flips · ~4× time'],[8,'8 views · ~8× time']].map(([v,t])=>`<option value="${v}" ${+M.tta===v?'selected':''}>${t}</option>`).join('')}</select></div></div>
   ${rec?`<div class="row small muted" style="margin-top:10px">Recommended (validation blocks): cutoff <b class="mono">${rec.threshold}</b> · TTA <b class="mono">${rec.tta}</b><button type="button" class="ghost" id="cRec">Use these</button></div>`:''}
-  <div class="row" style="margin-top:14px"><button id="cRun" ${run||!s||!s.stack_ready?'disabled':''}>▶ Save + run full map</button><button class="ghost" id="cLive" ${!s||!s.stack_ready?'disabled':''}>Watch it scan live</button></div><div class="small muted" id="cMsg" style="margin-top:6px"></div></div>
-  <div class="card"><h2>2 · Status<span class="tag ${run?'w':'g'}">${run?esc(s.job.kind)+' running':'idle'}</span></h2>
-  <div class="small mono muted" data-prog="${s?esc(s.name):''}">${esc((s&&s.progress)||'')}</div><pre id="cLog" style="margin-top:8px;max-height:300px">reading log…</pre>
-  <div class="small muted" style="margin-top:8px">Last run ${esc(sm.created||'never')}${d?' · '+esc(d.models.join(' + ')):''}</div></div></div>
- <div class="card"><h2>3 · Result · drag the cutoff<span class="tag">instant, in the browser</span></h2>
-  <div class="row"><input type="range" id="xThr" min="0.05" max="0.95" step="0.01" value="${sm.threshold??0.5}" style="flex:1;min-width:160px"><b class="mono" id="xThrV"></b><span class="mono" id="xKm" style="color:var(--cyan)"></span></div>
-  <div class="xwrap" id="xWrap"><div class="empty">${sm.layers&&sm.layers.includes('prob_gray')?'loading map…':'Press ▶ Save + run full map once to use this.'}</div></div>
-  <div class="small muted" style="margin-top:6px">Cyan = flood at this cutoff, over the after-storm radar. Area is approximate (preview grid). This slider does not change saved runs: the cutoff in step 1 does. <a href="#map" style="color:var(--cyan)">Full map viewer →</a></div></div>
- <div class="grid g2e"><div class="card"><h2>Improvement check<span class="tag">honest protocol</span></h2>${improveCard(I)}</div>
-  <div class="card"><h2>Rj's to-do<span class="tag w">for you</span></h2><div id="cTodo" class="todo small">reading…</div></div></div>`;
- $('#cStorm').onchange=e=>{S.cur=e.target.value;ls.set('storm',S.cur);S.sig='';loadStorms()};
+  <div class="row" style="margin-top:14px"><button id="cSave" ${run||!s||!s.stack_ready?'disabled':''}>Save + run full map</button></div>
+  <div class="small muted" style="margin-top:10px">${pt?`Score against the published map (the training-label source, so optimistic): ${f3(pt.iou)}.`:''} Last run ${esc(sm.created||'never')}${d?' · '+esc(d.models.join(' + ')):''}</div></div>
+  <div><h2>Log<span class="tag ${run?'w':'g'}">${run?esc(s.job.kind)+' running':'idle'}</span></h2>
+  <div class="small mono muted" data-prog="${s?esc(s.name):''}">${esc((s&&s.progress)||'')}</div><pre id="cLog" style="margin-top:8px;max-height:260px">reading log…</pre></div></div>
+  <div class="grid g2e" style="margin-top:14px"><div><h2>Improvement check<span class="tag">honest protocol</span></h2>${improveCard(I)}</div>
+  <div><h2>Rj's to-do<span class="tag w">for you</span></h2><div id="cTodo" class="todo small">reading…</div></div></div></details>`;
+ document.querySelectorAll('.stab').forEach(b=>b.onclick=()=>{S.cur=b.dataset.s;ls.set('storm',S.cur);S.sig='';loadStorms()});
+ $('#cAdv').ontoggle=e=>ls.set('advOpen',e.target.open?'1':'0');
  $('#cThr').oninput=e=>$('#cThrV').textContent=e.target.value;
  document.querySelectorAll('input[name=cdet]').forEach(i=>i.onchange=()=>i.closest('label').classList.toggle('on',i.checked));
  if($('#cRec'))$('#cRec').onclick=()=>{$('#cThr').value=rec.threshold;$('#cThrV').textContent=rec.threshold;$('#cTta').value=rec.tta};
  const cfgBody=()=>({detect_models:[...document.querySelectorAll('input[name=cdet]:checked')].map(i=>i.value),risk_model:$('#cRisk').value,threshold:+$('#cThr').value,tta:+$('#cTta').value});
- $('#cRun').onclick=async()=>{const m=$('#cMsg');try{await api('/api/config',cfgBody());await api(`/api/storm/${s.name}/predict`,{});m.textContent='started · this page updates by itself';S.sig='';await loadStorms()}catch(x){m.textContent=x.message}};
- $('#cLive').onclick=async()=>{const m=$('#cMsg'),dm=cfgBody().detect_models[0];if(!dm){m.textContent='tick a detection model';return}try{await api(`/api/live/${s.name}/start`,{model:dm,pace:0.35});location.hash='neural'}catch(x){m.textContent=x.message}};
+ const go=async save=>{const m=$('#cMsg');try{if(save)await api('/api/config',cfgBody());await api(`/api/storm/${s.name}/predict`,{});m.textContent='started · this page updates by itself (1–3 min)';S.sig='';await loadStorms()}catch(x){m.textContent=x.message}};
+ $('#cRun').onclick=()=>go(false);
+ $('#cSave').onclick=()=>{$('#cMsg').scrollIntoView({block:'center'});go(true)};
+ $('#cLive').onclick=async()=>{const m=$('#cMsg'),dm=(det.find(x=>x.enabled)||{}).file;if(!dm){m.textContent='no detection model is switched on (Advanced)';return}try{await api(`/api/live/${s.name}/start`,{model:dm,pace:0.35});location.hash='neural'}catch(x){m.textContent=x.message}};
  if(s)ctlLog(s.name);cutExplorer(s);
  try{const t=await (await fetch('/api/todo')).text();$('#cTodo').innerHTML=t?mdLite(t):'Nothing on the list.'}catch(e){$('#cTodo').textContent='could not read the list'}
 };

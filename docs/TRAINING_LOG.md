@@ -19,3 +19,25 @@ Every experiment and decision, newest at the bottom. Rule: a change is kept only
 **2026-11-22 02:39** v6_base64: validation 0.395 (pub 0.449, ind 0.341, cutoff 0.25, best epoch 44). Bar 0.405 -> **DROP: within luck**.
 
 **2026-11-22 02:39** Experiment **v6_lr1e3**: higher learning rate. Change {'--lr': '0.001'} on top of old recipe (v4_B x3 seeds).
+
+**2026-11-22 06:23** v6_lr1e3: validation 0.401 (pub 0.458, ind 0.344, cutoff 0.25, best epoch 34). Bar 0.405 -> **DROP: within luck**.
+
+**2026-11-22 06:23** Experiment **v6_wd1e3**: stronger weight decay (less overfitting to Mondal labels). Change {'--weight-decay': '0.001'} on top of old recipe (v4_B x3 seeds).
+
+**2026-11-22 20:02** v6_wd1e3: validation 0.397 (pub 0.450, ind 0.344, cutoff 0.35, best epoch 24). Bar 0.405 -> **DROP: within luck**.
+
+**2026-11-22 20:02** Stopping: time limit or RESEARCH_STOP.
+
+**2026-11-22 20:02** Final: no recipe beat the old one by more than luck. Models in use stay as they are (TTA 8, cutoff 0.30). Conclusion: the limit is the data (one storm, one label map), not the training settings.
+
+**2026-11-22 20:02** Research loop ended. Log sent to the PC.
+
+**2026-11-22 20:03** Research loop started. Waiting for training queue v5 to finish.
+
+**2026-11-22 20:03** Experiment **v6_ff50**: fewer flood-centred patches (better dry/water context). Change {'--flood-frac': '0.5'} on top of old recipe (v4_B x3 seeds).
+
+**2026-11-22 23:50** v6_ff50: validation 0.391 (pub 0.443, ind 0.338, cutoff 0.25, best epoch 36). Bar 0.405 -> **DROP: within luck**.
+
+**2026-11-22 23:50** Final: no recipe beat the old one by more than luck. Models in use stay as they are (TTA 8, cutoff 0.30). Conclusion: the limit is the data (one storm, one label map), not the training settings.
+
+**2026-11-22 23:50** Research loop ended. Log sent to the PC.
